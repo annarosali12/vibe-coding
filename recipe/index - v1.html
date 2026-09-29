@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<!-- v1.0 - initial build: single-card mac & cheese recipe page -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Makes the page render at a sensible size on phones instead of zoomed way out -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Baked Mac & Cheese Recipe</title>
+
+<style>
+  /* ============================================================
+     COLOR & TYPE TOKENS
+     A warm, cheddar-and-butter palette instead of a generic
+     grey/blue "app" look, since this is a homemade recipe card.
+     ============================================================ */
+  :root {
+    --cream:      #FBF3E3;  /* page background, like paper */
+    --card-bg:    #FFFDF8;  /* card surface, slightly lighter than page */
+    --ink:        #3A2E1F;  /* main text color, warm dark brown instead of pure black */
+    --ink-soft:   #6B5C46;  /* secondary text */
+    --cheddar:    #D98F2B;  /* accent: cheddar orange, used sparingly */
+    --cheddar-deep: #B96F14; /* darker accent for hover/border */
+    --line:       #E7D8B8;  /* hairline dividers */
+  }
+
+  /* Respect people who've asked their OS to reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    /* fallback stack chosen so the serif feel survives even without the web font */
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;   /* vertical centering */
+    justify-content: center; /* horizontal centering */
+    padding: 32px 16px;
+  }
+
+  /* ============================================================
+     THE CARD
+     One centered card holding everything: title, photo,
+     ingredients, steps. Kept to a single readable column.
+     ============================================================ */
+  .card {
+    width: 100%;
+    max-width: 620px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: clamp(20px, 5vw, 44px);
+    box-shadow: 0 1px 0 rgba(58, 46, 31, 0.04);
+  }
+
+  .card__title {
+    margin: 0 0 6px 0;
+    font-size: clamp(1.6rem, 5vw, 2.3rem);
+    font-weight: 600;
+    line-height: 1.15;
+    text-align: center;
+    color: var(--ink);
+  }
+
+  .card__subtitle {
+    margin: 0 0 24px 0;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+
+  /* Serves / time line: small meta info directly under the title,
+     above the subtitle. Kept plain (no icons, no all-caps labels)
+     so it reads as information, not decoration. */
+  .card__meta {
+    margin: 0 0 4px 0;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.9rem;
+    color: var(--cheddar-deep);
+  }
+
+  /* Link at the very top of the card, pointing to notes.html.
+     Styled the same as the back-link on notes.html so the two
+     pages feel like one connected set. */
+  .top-link-wrap {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .top-link {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    color: var(--cheddar-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .top-link:hover,
+  .top-link:focus-visible {
+    color: var(--ink);
+  }
+
+  /* Visible keyboard focus, since we can't rely on default outlines
+     looking right against this warm background. */
+  .top-link:focus-visible {
+    outline: 2px solid var(--cheddar);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Photo sits right under the title, a few hundred px wide,
+     centered, with a gentle frame so it reads as a "card" element
+     rather than a floating image. */
+  .card__photo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .card__photo {
+    width: 100%;
+    max-width: 340px;   /* "a few hundred pixels" wide */
+    height: auto;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--cream); /* shows as a soft placeholder if finished.jpg is missing */
+  }
+
+  /* Second photo, shown at the bottom of the card under the steps.
+     Reuses the same frame styling so both photos feel consistent. */
+  .card__photo-wrap--bottom {
+    margin-top: 28px;
+    margin-bottom: 0;
+  }
+
+  /* Section headings for Ingredients / Steps */
+  h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--cheddar-deep);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  section + section {
+    margin-top: 28px;
+  }
+
+  /* Ingredients list: simple bullets, comfortable line length */
+  .ingredients {
+    margin: 0;
+    padding-left: 1.3em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+
+  .ingredients li {
+    margin-bottom: 6px;
+  }
+
+  .ingredients li::marker {
+    color: var(--cheddar);
+  }
+
+  /* Steps: also a bulleted list per the request, but each bullet
+     is a full instruction, so we give it a touch more line-height
+     for readability during cooking. */
+  .steps {
+    margin: 0;
+    padding-left: 1.3em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .steps li {
+    margin-bottom: 12px;
+  }
+
+  .steps li::marker {
+    color: var(--cheddar);
+  }
+
+  .steps li:last-child,
+  .ingredients li:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Small screens: tighten card padding a bit further */
+  @media (max-width: 380px) {
+    .card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- The whole recipe lives inside one <article>, which is the
+       correct semantic element for "a self-contained piece of
+       content", and gives screen readers a clear landmark. -->
+  <article class="card" aria-labelledby="recipe-title">
+
+    <nav class="top-link-wrap" aria-label="Page navigation">
+      <a class="top-link" href="notes.html">&larr; Read Me First!</a>
+    </nav>
+
+    <h1 class="card__title" id="recipe-title">Anna's Mac &amp; Cheese</h1>
+    <p class="card__meta">Serves 6 &middot; Takes about 45 minutes</p>
+    <p class="card__subtitle">A stovetop cheese sauce, baked until it bubbles</p>
+
+    <!-- Photo: alt text describes the dish for anyone using a
+         screen reader or whose image fails to load. -->
+    <div class="card__photo-wrap">
+      <img
+        class="card__photo"
+        src="finished.jpg"
+        alt="Baked macaroni and cheese in a casserole dish, golden and bubbling"
+        width="340"
+        height="255"
+        loading="lazy"
+      >
+    </div>
+
+    <!-- INGREDIENTS -->
+    <section aria-labelledby="ingredients-heading">
+      <h2 id="ingredients-heading">Ingredients</h2>
+      <ul class="ingredients">
+        <li>3 Tbsp. butter</li>
+        <li>Approx. 3 Tbsp flour</li>
+        <li>2 c. milk, whatever type you use, plus one cup more milk if needed</li>
+        <li>4 c. shredded cheddar cheese (it's better if you shred it yourself)</li>
+        <li>8oz pasta, whatever shape you like</li>
+        <li>Onion powder or minced onion</li>
+        <li>Salt</li>
+        <li>Pepper</li>
+        <li>Seasoned breadcrumbs (optional)</li>
+        <li>Ham, buffalo chicken sausage, hot sauce (optional)</li>
+      </ul>
+    </section>
+
+    <!-- STEPS -->
+    <section aria-labelledby="steps-heading">
+      <h2 id="steps-heading">Steps</h2>
+      <ul class="steps">
+        <li>Start water boiling in a saucepan for the pasta. Add pasta to water and boil until al dente. It will finish cooking in the sauce, so you want it not quite done.</li>
+        <li>Melt butter on medium heat. Add flour in small amounts, stirring and letting it cook up. Don't skip this step, or else your sauce will taste floury.</li>
+        <li>Add milk, a little at a time. Keep stirring the sauce and use the back of a spoon to flatten out any lumps of flour that are left. Once all the milk is added, check the consistency. If it's too thick, add up to a cup more milk.</li>
+        <li>Gradually add shredded cheese until the cheese melts and the sauce has thickened. Add onion powder, minced onion, salt and pepper to taste.</li>
+        <li>Drain pasta and scoop it into a 9x13 casserole dish that has been lined with parchment paper. Add sauce and top with any cheese that is left over, or seasoned breadcrumbs if you have any.</li>
+        <li>Cover with aluminum foil and bake at 350 degrees for about 25 minutes. Remove aluminum foil and bake for an additional 10 minutes, or until the sauce bubbles and has baked down. This recipe is versatile! Serve it with your favorite hot sauce, or add chopped leftover ham, cooked broccoli, or buffalo chicken sausage before baking if you have leftovers to use up.</li>
+      </ul>
+    </section>
+
+    <!-- Second photo: the finished, baked dish, shown at the
+         bottom of the card after the steps. -->
+    <div class="card__photo-wrap card__photo-wrap--bottom">
+      <img
+        class="card__photo card__photo--finished"
+        src="photo2.jpg"
+        alt="The finished baked macaroni and cheese, golden and bubbling, fresh out of the oven"
+        width="340"
+        height="255"
+        loading="lazy"
+      >
+    </div>
+
+  </article>
+
+  <script>
+    // v1.0 - initial build
+    // ------------------------------------------------------------
+    // This page is intentionally static: there's no user input to
+    // validate and no state to manage, so there isn't much for
+    // JavaScript to do. The one useful thing script can help with
+    // is being graceful if "finished.jpg" hasn't been placed in the
+    // folder yet, so the page doesn't show a broken-image icon.
+    // ------------------------------------------------------------
+
+    // Grab both photo elements. There are two now: the original
+    // process/hero shot (finished.jpg) and the finished-dish shot at
+    // the bottom of the card (photo2.jpg).
+    const photos = document.querySelectorAll('.card__photo');
+
+    // For each photo, if its file fails to load, swap in a simple
+    // inline placeholder graphic instead of the browser's broken
+    // image icon, and say exactly which filename is missing.
+    photos.forEach((photo) => {
+      photo.addEventListener('error', () => {
+        // Read the filename straight off the src that failed, so the
+        // placeholder message always names the right file (finished.jpg
+        // vs photo2.jpg) without needing to hardcode it twice.
+        const missingFile = photo.getAttribute('src');
+
+        photo.src =
+          'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+            <svg xmlns="http://www.w3.org/2000/svg" width="340" height="255">
+              <rect width="100%" height="100%" fill="#FBF3E3" stroke="#E7D8B8"/>
+              <text x="50%" y="50%" font-family="sans-serif" font-size="14"
+                    fill="#6B5C46" text-anchor="middle" dy=".3em">
+                Add ${missingFile} to this folder
+              </text>
+            </svg>
+          `);
+        photo.alt = `Placeholder: add a file named ${missingFile} to this folder to show the photo here`;
+      }, { once: true }); // only need to handle this once per photo per page load
+    });
+  </script>
+
+</body>
+</html>

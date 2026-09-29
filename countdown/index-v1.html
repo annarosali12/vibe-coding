@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elinor's 1st Birthday Countdown 🐾</title>
+
+    <style>
+        /* CSS RESET & VARIABLES */
+        :root {
+            --primary-color: #ff6b8b;
+            --secondary-color: #ffa8ba;
+            --background-color: #fff0f5;
+            --card-background: #ffffff;
+            --text-color: #4a3b32;
+            --accent-color: #ffd166;
+            --border-radius: 24px;
+            --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+            /* Cute subtle paw-print style background pattern */
+            background-image: radial-gradient(#ffa8ba 15%, transparent 16%),
+                              radial-gradient(#ffa8ba 15%, transparent 16%);
+            background-size: 60px 60px;
+            background-position: 0 0, 30px 30px;
+        }
+
+        /* MAIN CARD CONTAINER */
+        main {
+            background: var(--card-background);
+            border: 6px solid var(--secondary-color);
+            border-radius: var(--border-radius);
+            padding: 40px 30px;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(255, 107, 139, 0.2);
+            position: relative;
+            margin-top: 20px;
+        }
+
+        /* KITTEN EARS DESIGN */
+        .cat-ears {
+            position: absolute;
+            top: -50px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 60px;
+            pointer-events: none;
+        }
+
+        .ear {
+            width: 0;
+            height: 0;
+            border-left: 40px solid transparent;
+            border-right: 40px solid transparent;
+            border-bottom: 55px solid var(--secondary-color);
+            position: relative;
+        }
+
+        .ear::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: -22px;
+            width: 0;
+            height: 0;
+            border-left: 22px solid transparent;
+            border-right: 22px solid transparent;
+            border-bottom: 32px solid var(--primary-color);
+        }
+
+        /* HEADER TYPOGRAPHY */
+        h1 {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-color);
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        /* COUNTDOWN GRID DISPLAY */
+        .countdown-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .time-card {
+            background-color: var(--background-color);
+            border: 3px dashed var(--secondary-color);
+            border-radius: 16px;
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* LARGE NUMBERS DISPLAY */
+        .number {
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 8px;
+        }
+
+        .label {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        /* DECORATIVE PAW FOOTER */
+        .decorations {
+            font-size: 1.8rem;
+            margin-top: 10px;
+            user-select: none;
+        }
+
+        /* VISUALLY HIDDEN CLASS FOR ACCESSIBILITY (SCREEN READERS) */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* RESPONSIVE DESIGN FOR SMALLER SCREENS */
+        @media (max-width: 650px) {
+            .countdown-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+
+            .number {
+                font-size: 3rem;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .cat-ears {
+                padding: 0 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Semantic container for accessibility -->
+    <main tabindex="0" aria-labelledby="title" aria-describedby="live-status">
+        
+        <!-- Decorative kitten ears -->
+        <div class="cat-ears" aria-hidden="true">
+            <div class="ear"></div>
+            <div class="ear"></div>
+        </div>
+
+        <header>
+            <h1 id="title">🐾 Elinor's 1st Birthday Countdown 🐾</h1>
+            <p class="subtitle">Counting down to May 29, 2027 🎂</p>
+        </header>
+
+        <!-- Dynamic accessibility status text updated silently for screen readers -->
+        <div id="live-status" class="sr-only" aria-live="polite"></div>
+
+        <!-- Visible Countdown Display -->
+        <div class="countdown-grid" role="region" aria-label="Time remaining countdown timer">
+            
+            <div class="time-card">
+                <span class="number" id="days" aria-label="Days">000</span>
+                <span class="label" aria-hidden="true">Days</span>
+            </div>
+
+            <div class="time-card">
+                <span class="number" id="hours" aria-label="Hours">00</span>
+                <span class="label" aria-hidden="true">Hours</span>
+            </div>
+
+            <div class="time-card">
+                <span class="number" id="minutes" aria-label="Minutes">00</span>
+                <span class="label" aria-hidden="true">Minutes</span>
+            </div>
+
+            <div class="time-card">
+                <span class="number" id="seconds" aria-label="Seconds">00</span>
+                <span class="label" aria-hidden="true">Seconds</span>
+            </div>
+
+        </div>
+
+        <footer class="decorations" aria-hidden="true">
+            🐾 🐟 🐾 🐟 🐾
+        </footer>
+
+    </main>
+
+    <script>
+        // Version 1.0 - Initial responsive kitten-themed countdown timer build
+
+        // BLOCK 1: TARGET DATE SETUP
+        // Define the target date for Elinor's 1st Birthday: May 29, 2027 at Midnight.
+        const TARGET_DATE = new Date('May 29, 2027 00:00:00').getTime();
+
+        // BLOCK 2: DOM ELEMENT REFERENCES
+        // Grab elements from HTML using IDs so JavaScript can update their text content.
+        const daysElement = document.getElementById('days');
+        const hoursElement = document.getElementById('hours');
+        const minutesElement = document.getElementById('minutes');
+        const secondsElement = document.getElementById('seconds');
+        const liveStatusElement = document.getElementById('live-status');
+
+        // BLOCK 3: HELPER FUNCTION FOR ZERO PADDING
+        // Formats single-digit numbers so they always show as two digits (e.g., '05' instead of '5').
+        function formatTime(time) {
+            return time < 10 ? `0${time}` : time;
+        }
+
+        // BLOCK 4: MAIN TIMER FUNCTION
+        // Calculates time remaining between the current moment and the birthday target date.
+        function updateCountdown() {
+            // Get current time in milliseconds
+            const now = new Date().getTime();
+            
+            // Calculate remaining milliseconds until the target birthday date
+            const timeDifference = TARGET_DATE - now;
+
+            // CHECK: IF THE TARGET DATE HAS PASSED
+            if (timeDifference <= 0) {
+                // Stop the timer loop
+                clearInterval(timerInterval);
+
+                // Display celebration numbers and update the title
+                daysElement.textContent = "00";
+                hoursElement.textContent = "00";
+                minutesElement.textContent = "00";
+                secondsElement.textContent = "00";
+
+                document.getElementById('title').textContent = "🎉 Happy 1st Birthday, Elinor! 🎉";
+                liveStatusElement.textContent = "Happy 1st Birthday, Elinor! The countdown has ended.";
+                return;
+            }
+
+            // BLOCK 5: TIME UNIT CONVERSIONS
+            // Convert total remaining milliseconds into days, hours, minutes, and seconds
+            const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeDifference % (1000 * 60)) / 1000);
+
+            // BLOCK 6: DOM UPDATES
+            // Render the calculated values onto the visual display
+            daysElement.textContent = days;
+            hoursElement.textContent = formatTime(hours);
+            minutesElement.textContent = formatTime(minutes);
+            secondsElement.textContent = formatTime(seconds);
+
+            // Update hidden screen reader text periodically for accessibility
+            liveStatusElement.textContent = `${days} days, ${hours} hours, ${minutes} minutes, and ${seconds} seconds remaining until Elinor's birthday.`;
+        }
+
+        // BLOCK 7: TIMER INITIALIZATION & INTERVAL
+        // Run the function immediately on page load so there is no 1-second delay
+        updateCountdown();
+
+        // Repeat the update function every 1000 milliseconds (1 second) to keep the countdown live
+        const timerInterval = setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>

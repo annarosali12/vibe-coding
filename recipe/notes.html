@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<!-- v1.0 - initial build: "about this recipe" page, matching the recipe card's style -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- Makes the page render at a sensible size on phones instead of zoomed way out -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About This Recipe</title>
+
+<style>
+  /* ============================================================
+     COLOR & TYPE TOKENS
+     Identical to index.html, so the two pages read as one set.
+     ============================================================ */
+  :root {
+    --cream:      #FBF3E3;  /* page background, like paper */
+    --card-bg:    #FFFDF8;  /* card surface, slightly lighter than page */
+    --ink:        #3A2E1F;  /* main text color, warm dark brown instead of pure black */
+    --ink-soft:   #6B5C46;  /* secondary text */
+    --cheddar:    #D98F2B;  /* accent: cheddar orange, used sparingly */
+    --cheddar-deep: #B96F14; /* darker accent for hover/border */
+    --line:       #E7D8B8;  /* hairline dividers */
+  }
+
+  /* Respect people who've asked their OS to reduce motion */
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    /* fallback stack chosen so the serif feel survives even without the web font */
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;   /* vertical centering */
+    justify-content: center; /* horizontal centering */
+    padding: 32px 16px;
+  }
+
+  /* ============================================================
+     THE CARD
+     Same card treatment as index.html: one centered card,
+     kept to a single readable column.
+     ============================================================ */
+  .card {
+    width: 100%;
+    max-width: 620px;
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: clamp(20px, 5vw, 44px);
+    box-shadow: 0 1px 0 rgba(58, 46, 31, 0.04);
+  }
+
+  .card__title {
+    margin: 0 0 6px 0;
+    font-size: clamp(1.6rem, 5vw, 2.3rem);
+    font-weight: 600;
+    line-height: 1.15;
+    text-align: center;
+    color: var(--ink);
+  }
+
+  .card__subtitle {
+    margin: 0 0 24px 0;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+  }
+
+  /* Small row of links at the top of the card, so either page
+     can be reached from either page. Shared class name/markup
+     used identically on index.html and notes.html. */
+  .site-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    margin-bottom: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+  }
+
+  .site-nav__link {
+    color: var(--cheddar-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .site-nav__link:hover,
+  .site-nav__link:focus-visible {
+    color: var(--ink);
+  }
+
+  /* Visible keyboard focus, since we can't rely on default outlines
+     looking right against this warm background. */
+  .site-nav__link:focus-visible {
+    outline: 2px solid var(--cheddar);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  .site-nav__divider {
+    color: var(--line);
+  }
+
+  /* Section heading, matching "Ingredients" / "Steps" on index.html */
+  h2 {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    color: var(--cheddar-deep);
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Body copy: room for a few paragraphs about the recipe.
+     Kept to comfortable line length and line-height for reading,
+     not scanning like the ingredient/step lists on the other page. */
+  .story {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .story p {
+    margin: 0 0 16px 0;
+  }
+
+  .story p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Back link to index.html, styled quietly so it reads as
+     navigation rather than another call-to-action button. */
+  .back-link-wrap {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+  }
+
+  .back-link {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 0.95rem;
+    color: var(--cheddar-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .back-link:hover,
+  .back-link:focus-visible {
+    color: var(--ink);
+  }
+
+  /* Visible keyboard focus, since we can't rely on default outlines
+     looking right against this warm background. */
+  .back-link:focus-visible {
+    outline: 2px solid var(--cheddar);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Small screens: tighten card padding a bit further */
+  @media (max-width: 380px) {
+    .card { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Same <article> pattern as index.html, so screen readers get
+       a consistent landmark structure across both pages. -->
+  <article class="card" aria-labelledby="about-title">
+
+    <nav class="site-nav" aria-label="Page navigation">
+      <a class="site-nav__link" href="index.html">Recipe</a>
+      <span class="site-nav__divider" aria-hidden="true">&middot;</span>
+      <a class="site-nav__link" href="notes.html">Notes</a>
+    </nav>
+
+    <h1 class="card__title" id="about-title">About This Recipe</h1>
+    <p class="card__subtitle">The story behind the mac &amp; cheese</p>
+
+    <section aria-labelledby="story-heading">
+      <h2 id="story-heading">Notes</h2>
+      <div class="story">
+        <!-- Placeholder paragraphs: replace with your own notes
+             about where the recipe came from, why it works, or
+             any variations you like. -->
+        <p>This recipe started as a way to use up whatever cheese and pasta shapes were on hand, and it's been tweaked over the years until the ratios felt right. Shredding the cheddar yourself, rather than buying it pre-shredded, makes a noticeably smoother sauce.</p>
+        <p>The base is a simple roux: butter and flour cooked together before the milk goes in. It looks like an extra step, but it's what keeps the finished sauce from tasting like flour, and it's worth the two or three minutes it takes.</p>
+        <p>It's a forgiving dish. Add leftover ham, cooked broccoli, or buffalo chicken sausage before baking, or leave it plain and serve hot sauce on the side. Once you've made it a few times, feel free to treat the ingredient list as a starting point rather than a rule.</p>
+      </div>
+    </section>
+
+    <nav class="back-link-wrap" aria-label="Page navigation">
+      <a class="back-link" href="index.html">&larr; Back to the recipe</a>
+    </nav>
+
+  </article>
+
+</body>
+</html>

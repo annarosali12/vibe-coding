@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Photo Card Carousel Slider</title>
+    
+    <!-- Load FontAwesome via CDN for arrow button icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Load Tailwind CSS via CDN for responsive styling utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        /*
+          ======================================================================
+          v1.3 - Dynamic gallery driven by single central configuration array
+          CSS STYLESHEET & DESIGN TOKENS
+          ======================================================================
+        */
+
+        /* Custom properties for uniform card proportions and animation parameters */
+        :root {
+            --card-aspect-ratio: 16 / 9;
+            --transition-speed: 0.4s;
+            --transition-easing: cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /*
+          Enforce exact uniform picture sizing regardless of original image dimensions.
+          Uses a fixed aspect ratio container with fallback background color.
+        */
+        .card-image-container {
+            aspect-ratio: var(--card-aspect-ratio);
+            position: relative;
+            overflow: hidden;
+            background-color: #111827; /* Dark slate placeholder while loading */
+        }
+
+        /* 
+          `object-fit: cover` clips images cleanly without stretching or distorting aspect ratios.
+        */
+        .card-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            transition: transform 0.5s ease;
+        }
+
+        /* Subtle hover effect for interactive visual feedback */
+        .card-container:hover .card-image {
+            transform: scale(1.02);
+        }
+
+        /* Outer slider viewport masking overflowing adjacent cards */
+        .carousel-track-container {
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            border-radius: 1rem;
+            touch-action: pan-y; /* Permits vertical page scrolling while handling horizontal swipes */
+        }
+
+        /* Flexible horizontal track that moves smoothy using CSS transform translations */
+        .carousel-track {
+            display: flex;
+            transition: transform var(--transition-speed) var(--transition-easing);
+            will-change: transform;
+        }
+
+        /* Individual slide forcing 1 card visible at a time */
+        .carousel-slide {
+            min-width: 100%;
+            max-width: 100%;
+            flex-shrink: 0;
+            box-sizing: border-box;
+        }
+
+        /* Distinct visual focus indicator for accessibility / keyboard navigation */
+        button:focus-visible,
+        #image-carousel:focus-visible {
+            outline: 3px solid #6366f1;
+            outline-offset: 4px;
+        }
+
+        /* Respect system accessibility settings for reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            .carousel-track,
+            .card-image,
+            .dot-indicator {
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between items-center font-sans p-4 md:p-8">
+
+    <!-- Application Header -->
+    <header class="text-center max-w-2xl my-4 md:my-6">
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">
+            Photo Gallery Slider
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base">
+            Browse high-resolution photo cards. Use buttons, touch swipes, or keyboard left/right arrow keys to switch cards.
+        </p>
+    </header>
+
+    <!-- 
+      MAIN CAROUSEL COMPONENT
+      - role="region": Semantic ARIA boundary for carousels
+      - tabindex="0": Allows focusing the carousel container for keyboard users
+    -->
+    <main class="w-full max-w-4xl mx-auto my-auto">
+        <div 
+            id="image-carousel" 
+            class="carousel-wrapper relative bg-slate-800 p-4 md:p-6 rounded-2xl shadow-2xl border border-slate-700/50 outline-none"
+            role="region" 
+            aria-roledescription="carousel" 
+            aria-label="Photo Gallery Carousel"
+            tabindex="0"
+        >
+            <!-- Track Container masking horizontal slides -->
+            <div id="carousel-viewport" class="carousel-track-container shadow-lg">
+                <!-- Dynamically populated card track container -->
+                <ul id="carousel-track" class="carousel-track" aria-live="polite">
+                    <!-- Slides are injected here dynamically from GALLERY_CONFIG -->
+                </ul>
+            </div>
+
+            <!-- NAVIGATION BUTTONS -->
+            <!-- Previous Button -->
+            <button 
+                id="prev-button" 
+                class="absolute left-2 md:-left-5 top-1/2 -translate-y-1/2 bg-slate-800/90 hover:bg-indigo-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border border-slate-600/60 shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 z-10"
+                aria-label="Previous Photo"
+                title="Previous Photo (Left Arrow Key)"
+            >
+                <i class="fa-solid fa-chevron-left text-sm md:text-base" aria-hidden="true"></i>
+            </button>
+
+            <!-- Next Button -->
+            <button 
+                id="next-button" 
+                class="absolute right-2 md:-right-5 top-1/2 -translate-y-1/2 bg-slate-800/90 hover:bg-indigo-600 text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border border-slate-600/60 shadow-xl transition-all duration-200 hover:scale-110 active:scale-95 z-10"
+                aria-label="Next Photo"
+                title="Next Photo (Right Arrow Key)"
+            >
+                <i class="fa-solid fa-chevron-right text-sm md:text-base" aria-hidden="true"></i>
+            </button>
+
+            <!-- COUNTER & PAGINATION CONTAINER -->
+            <div class="flex flex-col items-center gap-3 mt-5">
+                <!-- Small Card Counter Display (e.g. "3 of 5") -->
+                <div 
+                    id="slide-counter" 
+                    class="text-xs font-semibold text-slate-300 bg-slate-900/90 px-3.5 py-1.5 rounded-full border border-slate-700/80 tracking-wide shadow-sm"
+                    aria-live="polite"
+                    aria-atomic="true"
+                >
+                    <!-- Position counter updated dynamically via JavaScript -->
+                </div>
+
+                <!-- PAGINATION DOT INDICATORS -->
+                <div 
+                    id="dots-navigation" 
+                    class="flex justify-center items-center gap-2" 
+                    role="tablist" 
+                    aria-label="Select slide to display"
+                >
+                    <!-- Dot buttons are dynamically generated based on GALLERY_CONFIG length -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Application Footer & Keyboard / Swipe Hints -->
+    <footer class="mt-6 text-center text-xs text-slate-500">
+        <p class="flex items-center justify-center gap-2 flex-wrap">
+            <kbd class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono font-bold">←</kbd>
+            <kbd class="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono font-bold">→</kbd>
+            <span>Use Left / Right Arrow keys or swipe left / right on touchscreens to move between cards</span>
+        </p>
+    </footer>
+
+    <script>
+        // // v1.3 - added central photo configuration list, visible captions, screen reader descriptions, dynamic rendering, and touch swipe support
+
+        /**
+         * ==================================================================================
+         * 1. CENTRAL PHOTO CONFIGURATION LIST
+         * ==================================================================================
+         * Plain language explanation:
+         * THIS IS THE SINGLE LIST AT THE VERY TOP OF THE SCRIPT.
+         * To add, remove, or edit pictures:
+         * 1. Drop your image file (e.g., photo-6.jpg) into the same folder as this HTML file.
+         * 2. Add an entry object to this `GALLERY_CONFIG` array containing:
+         *    - `fileName`: exact image filename in the folder
+         *    - `caption`: visible text shown under the picture card
+         *    - `altText`: accessible description for screen reader users and missing image fallbacks
+         * Everything else (slides, navigation dots, counter, keyboard navigation) updates automatically.
+         */
+        const GALLERY_CONFIG = [
+            {
+                fileName: "photo-1.jpg",
+                caption: "I was promised a Churu.",
+                altText: "A tiny orange, brown and white kitten sits looking up with her mouth open, pink tongue and two small teeth visible."
+            },
+            {
+                fileName: "photo-2.jpg",
+                caption: "You're not getting the couch or the pillow back",
+                altText: "A large black dog with long eyebrows and a beard is stretched out across a black leather couch, her head resting on a white pillow ."
+            },
+            {
+                fileName: "photo-3.jpg",
+                caption: "Audrey-effortlessly cool, even in the Bermuda summer",
+                altText: "A black and white mural of Audrey Hepburn dressed as Holly Golightly, in front of multicolored graffiti saying 'the vintage shop'"
+            },
+            {
+                fileName: "photo-4.jpg",
+                caption: "Welcome to Hamilton",
+                altText: "BERMUDA, welcome to Hamilton is spelled out in large, 3D letters, each featuring distinctive photos from island landmarks."
+            },
+            {
+                fileName: "photo-5.jpg",
+                caption: "This is the best stingray and it is only for me",
+                altText: "A large, black, bearded dog lays on the floor, holding a pink, spotted stingray toy in her mouth ."
+            },
+            {
+                fileName: "photo-6.jpg",
+            caption: "Can I help it if I like the dog's water bowl better?",
+            altText: "A tiny, orange, white and brown kitten sits on a perch in front of a window. Droplets of water are stuck to her chin."   
+            }
+        ];
+
+        /**
+         * ==================================================================================
+         * 2. IMAGE FALLBACK GENERATOR
+         * ==================================================================================
+         * Plain language explanation:
+         * If local photo files (e.g., `photo-1.jpg`) are missing when testing locally or in
+         * preview environments, this function generates an inline SVG image on the fly with a color
+         * gradient and label. This guarantees that cards never display broken image icons.
+         *
+         * @param {HTMLImageElement} imgElement - The <img> element that failed to load
+         * @param {number} photoNumber - 1-based index of the photo card
+         * @param {string} captionText - The photo caption to render on the placeholder
+         */
+        function handleImageError(imgElement, photoNumber, captionText) {
+            // Color palettes for generated fallbacks
+            const colors = [
+                ['#4f46e5', '#7c3aed'], // Indigo / Violet
+                ['#0284c7', '#2563eb'], // Sky / Blue
+                ['#059669', '#10b981'], // Emerald / Green
+                ['#d97706', '#ea580c'], // Amber / Orange
+                ['#db2777', '#e11d48']  // Pink / Rose
+            ];
+            
+            const [colorA, colorB] = colors[(photoNumber - 1) % colors.length];
+
+            // SVG string payload with clean graphics and text layout
+            const svgPlaceholder = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450">
+                    <defs>
+                        <linearGradient id="grad_${photoNumber}" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:${colorA};stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:${colorB};stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect width="800" height="450" fill="url(#grad_${photoNumber})" />
+                    <circle cx="400" cy="180" r="50" fill="white" fill-opacity="0.2" />
+                    <path d="M380 180 L420 180 M400 160 L400 200" stroke="white" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+                    <text x="50%" y="280" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="bold" font-size="26" fill="white">${captionText}</text>
+                    <text x="50%" y="325" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="16" fill="white" opacity="0.85">File: photo-${photoNumber}.jpg</text>
+                </svg>
+            `;
+
+            // Assign data URI as image source
+            imgElement.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgPlaceholder);
+            // Remove handler to prevent infinite call loops
+            imgElement.onerror = null; 
+        }
+
+        /**
+         * ==================================================================================
+         * 3. DOM GENERATION & CAROUSEL INITIALIZATION
+         * ==================================================================================
+         * Plain language explanation:
+         * Runs when the HTML page finishes loading. It reads `GALLERY_CONFIG`, constructs HTML
+         * slide cards with visible captions and accessible alt text descriptions, sets up dot
+         * pagination, and attaches event listeners for buttons, keys, and touch swipes.
+         */
+        document.addEventListener('DOMContentLoaded', function () {
+            // Get key DOM elements
+            const track = document.getElementById('carousel-track');
+            const prevButton = document.getElementById('prev-button');
+            const nextButton = document.getElementById('next-button');
+            const dotsNav = document.getElementById('dots-navigation');
+            const slideCounter = document.getElementById('slide-counter');
+            const carouselViewport = document.getElementById('carousel-viewport');
+
+            // Total number of slides from central configuration array
+            const totalSlides = GALLERY_CONFIG.length;
+
+            // Track active slide index (0 to totalSlides - 1)
+            let currentIndex = 0;
+
+            // ------------------------------------------------------------------------------
+            // DYNAMIC SLIDE & DOT GENERATION
+            // ------------------------------------------------------------------------------
+            // Clear existing elements in track and dots container
+            track.innerHTML = '';
+            dotsNav.innerHTML = '';
+
+            GALLERY_CONFIG.forEach((photo, index) => {
+                const photoNum = index + 1;
+
+                // 1. Build Slide Card HTML
+                const slideLi = document.createElement('li');
+                slideLi.className = 'carousel-slide';
+                slideLi.setAttribute('role', 'group');
+                slideLi.setAttribute('aria-roledescription', 'slide');
+                slideLi.setAttribute('aria-label', `${photoNum} of ${totalSlides}`);
+                slideLi.id = `slide-${index}`;
+
+                slideLi.innerHTML = `
+                    <div class="card-container rounded-xl overflow-hidden bg-slate-800 border border-slate-700 flex flex-col shadow-lg">
+                        <div class="card-image-container">
+                            <img 
+                                src="${photo.fileName}" 
+                                alt="${photo.altText}" 
+                                class="card-image"
+                                onerror="handleImageError(this, ${photoNum}, '${photo.caption.replace(/'/g, "\\'")}')"
+                            />
+                        </div>
+                        <div class="p-4 md:p-5 bg-slate-800 flex justify-between items-center gap-4">
+                            <div class="flex-1 min-w-0">
+                                <h2 class="text-base md:text-lg font-bold text-slate-100 truncate" title="${photo.caption}">
+                                    ${photo.caption}
+                                </h2>
+                                <p class="text-xs text-slate-400 font-mono mt-0.5 truncate">
+                                    ${photo.fileName}
+                                </p>
+                            </div>
+                            <span class="bg-indigo-500/10 text-indigo-400 text-xs px-3 py-1 rounded-full border border-indigo-500/20 font-mono flex-shrink-0 font-medium">
+                                ${photoNum} / ${totalSlides}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                track.appendChild(slideLi);
+
+                // 2. Build Dot Indicator Button HTML
+                const dotButton = document.createElement('button');
+                dotButton.setAttribute('role', 'tab');
+                dotButton.setAttribute('aria-selected', index === 0 ? 'true' : 'false');
+                dotButton.setAttribute('aria-label', `Go to photo ${photoNum}: ${photo.caption}`);
+                dotButton.className = index === 0 
+                    ? 'dot-indicator w-3 h-3 rounded-full bg-indigo-500 transition-all duration-300 transform scale-125'
+                    : 'dot-indicator w-3 h-3 rounded-full bg-slate-600 hover:bg-slate-400 transition-all duration-300';
+                
+                dotsNav.appendChild(dotButton);
+            });
+
+            // Re-select newly created dot elements array
+            const dots = Array.from(dotsNav.children);
+
+            // ------------------------------------------------------------------------------
+            // CORE NAVIGATION FUNCTION
+            // ------------------------------------------------------------------------------
+            /**
+             * Transitions carousel to display card at `targetIndex`.
+             * Updates CSS transform offset, position counter text, dot styling, and ARIA roles.
+             * 
+             * @param {number} targetIndex - Target index integer (0 to totalSlides - 1)
+             */
+            function moveToSlide(targetIndex) {
+                // Shift horizontal slide track left by 100% * targetIndex
+                track.style.transform = `translateX(-${targetIndex * 100}%)`;
+
+                // Update small counter display text under card (e.g. "3 of 5")
+                if (slideCounter) {
+                    slideCounter.textContent = `${targetIndex + 1} of ${totalSlides}`;
+                }
+
+                // Update dot pagination attributes and classes
+                dots.forEach((dot, idx) => {
+                    if (idx === targetIndex) {
+                        dot.setAttribute('aria-selected', 'true');
+                        dot.className = "dot-indicator w-3 h-3 rounded-full bg-indigo-500 transition-all duration-300 transform scale-125";
+                    } else {
+                        dot.setAttribute('aria-selected', 'false');
+                        dot.className = "dot-indicator w-3 h-3 rounded-full bg-slate-600 hover:bg-slate-400 transition-all duration-300";
+                    }
+                });
+
+                // Update current index state
+                currentIndex = targetIndex;
+            }
+
+            // ------------------------------------------------------------------------------
+            // WRAP-AROUND SLIDE NAVIGATION LOGIC
+            // ------------------------------------------------------------------------------
+            /**
+             * Advances to next card.
+             * WRAP-AROUND: If currently on the last card, wraps around to index 0 (first card).
+             */
+            function nextSlide() {
+                const nextIndex = (currentIndex + 1) % totalSlides;
+                moveToSlide(nextIndex);
+            }
+
+            /**
+             * Moves to previous card.
+             * WRAP-AROUND: If currently on the first card, wraps around to last card index.
+             */
+            function prevSlide() {
+                const prevIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+                moveToSlide(prevIndex);
+            }
+
+            // ------------------------------------------------------------------------------
+            // EVENT BINDINGS (BUTTONS & DOTS)
+            // ------------------------------------------------------------------------------
+            nextButton.addEventListener('click', nextSlide);
+            prevButton.addEventListener('click', prevSlide);
+
+            dotsNav.addEventListener('click', function (event) {
+                const targetDot = event.target.closest('button');
+                if (!targetDot) return;
+
+                const targetIndex = dots.indexOf(targetDot);
+                if (targetIndex !== -1) {
+                    moveToSlide(targetIndex);
+                }
+            });
+
+            // ------------------------------------------------------------------------------
+            // KEYBOARD NAVIGATION (LEFT & RIGHT ARROW KEYS)
+            // ------------------------------------------------------------------------------
+            /**
+             * Listens globally for left and right arrow key presses to cycle cards.
+             */
+            window.addEventListener('keydown', function (event) {
+                // Skip keyboard triggering if focus is inside input elements
+                const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                if (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) {
+                    return;
+                }
+
+                if (event.key === 'ArrowLeft' || event.code === 'ArrowLeft') {
+                    event.preventDefault(); // Prevent page horizontal scroll
+                    prevSlide();
+                } else if (event.key === 'ArrowRight' || event.code === 'ArrowRight') {
+                    event.preventDefault(); // Prevent page horizontal scroll
+                    nextSlide();
+                }
+            });
+
+            // ------------------------------------------------------------------------------
+            // TOUCH SWIPE NAVIGATION (MOBILE & TABLET SUPPORT)
+            // ------------------------------------------------------------------------------
+            let touchStartX = 0;
+            let touchEndX = 0;
+            const swipeThreshold = 40; // Minimum horizontal pixel drag distance to register swipe
+
+            carouselViewport.addEventListener('touchstart', function (e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            carouselViewport.addEventListener('touchend', function (e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipeGesture();
+            }, { passive: true });
+
+            /**
+             * Evaluates start vs end touch coordinates to detect left or right swipe gestures.
+             */
+            function handleSwipeGesture() {
+                const distance = touchEndX - touchStartX;
+                if (Math.abs(distance) >= swipeThreshold) {
+                    if (distance < 0) {
+                        // Swiped Left -> Move to Next card
+                        nextSlide();
+                    } else {
+                        // Swiped Right -> Move to Previous card
+                        prevSlide();
+                    }
+                }
+            }
+
+            // Initialize position at first card (index 0)
+            moveToSlide(0);
+        });
+    </script>
+</body>
+</html>

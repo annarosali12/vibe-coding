@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customizable Work & Break Timer</title>
+    <!--
+        Customizable Work & Break Auto-Alternating Timer
+        // v4.0 - Programmatic audio beep generator and mute button toggle added
+        
+        Key Features:
+        - Pure JavaScript AudioContext sound generator (no audio files used).
+        - Integrated Mute/Unmute toggle button.
+        - Adjustable Work and Break duration controls directly on the page.
+        - Defaults remain 25 minutes (Work) and 5 minutes (Break).
+        - Auto-switches between Work and Break timers when duration ends.
+        - High contrast dark themes: Red tone for Work, Green tone for Break.
+        - Large display for across-the-room visibility.
+        - Single file, pure vanilla JS/CSS/HTML, responsive, and accessible.
+    -->
+    <style>
+        /* CSS VARIABLES FOR THEMES */
+        :root {
+            /* WORK MODE COLORS (Dark Crimson / Slate) */
+            --bg-color: #1a0d0e;
+            --text-color: #ffffff;
+            --subtext-color: #f28b82;
+            --timer-color: #ffb4ab;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --btn-start-bg: #2e7d32;
+            --btn-pause-bg: #ed6c02;
+            --btn-reset-bg: #9a2525;
+            --btn-mute-bg: #4a5568;
+            --glow-color: rgba(255, 180, 171, 0.15);
+        }
+
+        /* BREAK MODE THEME OVERRIDES */
+        body.break-mode {
+            /* BREAK MODE COLORS (Dark Teal / Mint) */
+            --bg-color: #0d1e1c;
+            --text-color: #ffffff;
+            --subtext-color: #80cbc4;
+            --timer-color: #a7f3d0;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --glow-color: rgba(167, 243, 208, 0.15);
+        }
+
+        /* CSS RESET & BASE STYLES */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            text-align: center;
+            /* Smooth background color transition between Work and Break states */
+            transition: background-color 0.6s ease;
+        }
+
+        /* MAIN CONTAINER */
+        main {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.25rem;
+        }
+
+        /* ACCESSIBLE SCREEN-READER ONLY CLASS */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* SESSION TYPE BADGE (WORK vs BREAK) */
+        .session-badge {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            color: var(--subtext-color);
+            transition: color 0.6s ease;
+        }
+
+        /* TIMER DISPLAY */
+        .timer-display {
+            font-size: clamp(5rem, 20vw, 15rem);
+            font-weight: 800;
+            font-variant-numeric: tabular-nums; /* Keeps numbers aligned */
+            line-height: 1;
+            letter-spacing: 2px;
+            color: var(--timer-color);
+            text-shadow: 0 0 30px var(--glow-color);
+            user-select: none;
+            transition: color 0.6s ease, text-shadow 0.6s ease;
+        }
+
+        /* STATUS TEXT ABOVE TIMER */
+        .status-text {
+            font-size: clamp(1rem, 2.5vw, 1.8rem);
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            min-height: 1.5em;
+        }
+
+        /* SETTINGS PANEL FOR DURATION INPUTS */
+        .settings-panel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .input-group label {
+            font-size: clamp(0.9rem, 2vw, 1.2rem);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--subtext-color);
+        }
+
+        .input-group input[type="number"] {
+            width: 75px;
+            padding: 0.4rem 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--panel-border);
+            border-radius: 8px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .input-group input[type="number"]:focus {
+            border-color: var(--subtext-color);
+        }
+
+        .input-group input[type="number"]:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* BUTTON CONTAINER */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.2rem;
+            width: 100%;
+            max-width: 800px;
+            margin-top: 0.5rem;
+        }
+
+        /* BASE BUTTON STYLES */
+        .btn {
+            font-size: clamp(1.1rem, 2.5vw, 1.8rem);
+            font-weight: 700;
+            padding: 0.8em 1.4em;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: transform 0.1s ease, filter 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+            min-width: 130px;
+            flex: 1 1 22%;
+        }
+
+        /* Hover and focus accessibility effects */
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            filter: brightness(1.15);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .btn:focus-visible {
+            outline: 4px solid #ffffff;
+            outline-offset: 4px;
+        }
+
+        .btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        /* BUTTON COLOR VARIANTS */
+        .btn-start {
+            background-color: var(--btn-start-bg);
+            color: #ffffff;
+        }
+
+        .btn-pause {
+            background-color: var(--btn-pause-bg);
+            color: #ffffff;
+        }
+
+        .btn-reset {
+            background-color: var(--btn-reset-bg);
+            color: #ffffff;
+        }
+
+        .btn-mute {
+            background-color: var(--btn-mute-bg);
+            color: #ffffff;
+        }
+
+        /* Visual indicator when muted */
+        .btn-mute.is-muted {
+            background-color: #334155;
+            color: #94a3b8;
+            border: 2px dashed #64748b;
+        }
+
+        /* RESPONSIVE LAYOUT FOR SMALL SCREENS */
+        @media (max-width: 600px) {
+            .button-group {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.8rem;
+            }
+            .btn {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <!-- Large Session Badge to quickly see if it's WORK or BREAK time -->
+        <div id="sessionBadge" class="session-badge" aria-label="Session type">Work</div>
+
+        <!-- Timer status text -->
+        <div id="statusText" class="status-text" aria-live="polite">Ready</div>
+
+        <!-- Countdown timer display -->
+        <div id="timerDisplay" class="timer-display" aria-label="Timer display">25:00</div>
+
+        <!-- Interactive Session Settings (Minutes Inputs) -->
+        <section class="settings-panel" aria-label="Timer Settings">
+            <div class="input-group">
+                <label for="workInput">Work (mins):</label>
+                <input type="number" id="workInput" min="1" max="180" value="25" aria-label="Work duration in minutes">
+            </div>
+            <div class="input-group">
+                <label for="breakInput">Break (mins):</label>
+                <input type="number" id="breakInput" min="1" max="60" value="5" aria-label="Break duration in minutes">
+            </div>
+        </section>
+
+        <!-- Hidden screen reader announcements -->
+        <div id="srAnnouncement" class="sr-only" aria-live="assertive"></div>
+
+        <!-- Controls -->
+        <div class="button-group">
+            <button id="startBtn" class="btn btn-start" aria-label="Start Timer">Start</button>
+            <button id="pauseBtn" class="btn btn-pause" aria-label="Pause Timer" disabled>Pause</button>
+            <button id="resetBtn" class="btn btn-reset" aria-label="Reset Timer">Reset</button>
+            <button id="muteBtn" class="btn btn-mute" aria-label="Mute Audio">Mute</button>
+        </div>
+    </main>
+
+    <script>
+        // v4.0 - Programmatic audio beep generator and mute button toggle added
+
+        /* ==========================================================================
+           CONSTANTS & SESSION MODE DEFINITIONS
+           ========================================================================== */
+        const MODE = {
+            WORK: 'WORK',
+            BREAK: 'BREAK'
+        };
+
+        /* ==========================================================================
+           STATE VARIABLES
+           ========================================================================== */
+        let currentMode = MODE.WORK;           // Tracks if current phase is WORK or BREAK
+        let timeRemaining = 25 * 60;           // Seconds remaining in active mode (default 25 mins)
+        let timerInterval = null;             // Reference ID for active interval
+        let audioCtx = null;                  // Web Audio Context for audio chime
+        let isMuted = false;                  // Audio mute toggle state
+
+        /* ==========================================================================
+           DOM ELEMENTS
+           ========================================================================== */
+        const sessionBadge = document.getElementById('sessionBadge');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const statusText = document.getElementById('statusText');
+        const srAnnouncement = document.getElementById('srAnnouncement');
+        const workInput = document.getElementById('workInput');
+        const breakInput = document.getElementById('breakInput');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const muteBtn = document.getElementById('muteBtn');
+
+        /* ==========================================================================
+           SETTINGS HELPERS
+           ========================================================================== */
+
+        /**
+         * Reads duration inputs and ensures they are valid positive integers.
+         */
+        function getDurationInSeconds(inputElement, fallbackMinutes) {
+            let val = parseInt(inputElement.value, 10);
+            if (isNaN(val) || val < 1) {
+                val = fallbackMinutes;
+                inputElement.value = fallbackMinutes;
+            }
+            return val * 60;
+        }
+
+        /**
+         * Enables or disables duration input fields based on timer running status.
+         */
+        function setInputsDisabled(isDisabled) {
+            workInput.disabled = isDisabled;
+            breakInput.disabled = isDisabled;
+        }
+
+        /* ==========================================================================
+           AUDIO BEEP GENERATOR (Built-in Synthesizer via Web Audio API)
+           ========================================================================== */
+
+        /**
+         * Safely gets or initializes the browser's AudioContext.
+         */
+        function initAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        /**
+         * Plays a single beep tone at a target frequency and duration.
+         * Pure JavaScript tone generation - no external audio file used.
+         */
+        function playSingleBeep(frequency, durationMs, startTimeOffset = 0) {
+            if (isMuted) return; // Do not emit sound if muted
+            
+            try {
+                initAudioContext();
+
+                const startTime = audioCtx.currentTime + startTimeOffset;
+                const durationSec = durationMs / 1000;
+
+                // Create Oscillator (sound generator) and Gain (volume controller)
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                // 'sine' wave produces a clean, pleasing tone
+                osc.type = 'sine'; 
+                osc.frequency.setValueAtTime(frequency, startTime);
+
+                // Quick fade-in and fade-out envelope to avoid audio clipping / popping clicks
+                gain.gain.setValueAtTime(0.001, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.3, startTime + 0.03);
+                gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
+
+                // Connect audio pipeline: Oscillator -> Gain -> Speaker Output
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                // Trigger oscillator playback start and stop
+                osc.start(startTime);
+                osc.stop(startTime + durationSec + 0.05);
+            } catch (e) {
+                console.log("Audio playback restricted or not supported by browser.");
+            }
+        }
+
+        /**
+         * Plays a short distinct multi-beep sequence when the timer reaches zero.
+         */
+        function playCompletionBeeps() {
+            if (isMuted) return;
+
+            if (currentMode === MODE.WORK) {
+                // High-pitched 3-beep alert sequence signaling work end
+                playSingleBeep(784, 150, 0);     // Tone 1 (G5)
+                playSingleBeep(784, 150, 0.25);  // Tone 2 (G5)
+                playSingleBeep(1046, 350, 0.50); // Tone 3 (C6)
+            } else {
+                // Gentle 2-beep alert sequence signaling break end
+                playSingleBeep(523, 200, 0);     // Tone 1 (C5)
+                playSingleBeep(659, 400, 0.30);  // Tone 2 (E5)
+            }
+        }
+
+        /**
+         * Toggles audio mute state and updates control button UI.
+         */
+        function toggleMute() {
+            isMuted = !isMuted;
+            
+            if (isMuted) {
+                muteBtn.textContent = "Unmute";
+                muteBtn.classList.add('is-muted');
+                muteBtn.setAttribute('aria-label', 'Unmute Audio');
+                announceToScreenReader("Audio muted.");
+            } else {
+                muteBtn.textContent = "Mute";
+                muteBtn.classList.remove('is-muted');
+                muteBtn.setAttribute('aria-label', 'Mute Audio');
+                
+                // Initialize audio on unmute user gesture
+                initAudioContext();
+                announceToScreenReader("Audio unmuted.");
+            }
+        }
+
+        /* ==========================================================================
+           HELPER FUNCTIONS
+           ========================================================================== */
+
+        /**
+         * Formats total seconds into MM:SS display format.
+         */
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const paddedMinutes = String(minutes).padStart(2, '0');
+            const paddedSeconds = String(seconds).padStart(2, '0');
+
+            return `${paddedMinutes}:${paddedSeconds}`;
+        }
+
+        /**
+         * Updates visual timer display, page title, and theme color classes.
+         */
+        function updateDisplay() {
+            const formattedTime = formatTime(timeRemaining);
+            
+            // Update main timer display
+            timerDisplay.textContent = formattedTime;
+
+            // Update badge text
+            sessionBadge.textContent = (currentMode === MODE.WORK) ? 'Work' : 'Break';
+
+            // Toggle background theme styles depending on active session
+            if (currentMode === MODE.BREAK) {
+                document.body.classList.add('break-mode');
+            } else {
+                document.body.classList.remove('break-mode');
+            }
+
+            // Update page title
+            document.title = `(${formattedTime}) ${currentMode === MODE.WORK ? 'Work' : 'Break'} - Timer`;
+        }
+
+        /**
+         * Sends screen reader announcements.
+         */
+        function announceToScreenReader(message) {
+            srAnnouncement.textContent = message;
+        }
+
+        /**
+         * Auto-switches between Work and Break sessions when countdown reaches zero.
+         */
+        function switchMode() {
+            // Emit completion beep notification
+            playCompletionBeeps();
+
+            if (currentMode === MODE.WORK) {
+                currentMode = MODE.BREAK;
+                timeRemaining = getDurationInSeconds(breakInput, 5);
+                const breakMins = Math.floor(timeRemaining / 60);
+                announceToScreenReader(`Work session finished. Starting ${breakMins}-minute break.`);
+            } else {
+                currentMode = MODE.WORK;
+                timeRemaining = getDurationInSeconds(workInput, 25);
+                const workMins = Math.floor(timeRemaining / 60);
+                announceToScreenReader(`Break session finished. Starting ${workMins}-minute work session.`);
+            }
+
+            updateDisplay();
+        }
+
+        /* ==========================================================================
+           TIMER LOGIC & CONTROLS
+           ========================================================================== */
+
+        /**
+         * Starts countdown timer interval.
+         */
+        function startTimer() {
+            if (timerInterval !== null) return;
+
+            // Initialize Audio Context on user click interaction
+            initAudioContext();
+
+            statusText.textContent = "Running";
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+
+            // Disable input adjustment while timer is running
+            setInputsDisabled(true);
+
+            announceToScreenReader(`${currentMode} timer started.`);
+
+            // Execute 1-second interval loop
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+
+                updateDisplay();
+
+                if (timeRemaining <= 0) {
+                    switchMode();
+                }
+            }, 1000);
+        }
+
+        /**
+         * Pauses countdown interval.
+         */
+        function pauseTimer() {
+            if (timerInterval === null) return;
+
+            clearInterval(timerInterval);
+            timerInterval = null;
+
+            statusText.textContent = "Paused";
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+
+            announceToScreenReader(`${currentMode} timer paused at ${formatTime(timeRemaining)}.`);
+        }
+
+        /**
+         * Resets timer back to Work mode with selected user durations.
+         */
+        function resetTimer() {
+            if (timerInterval !== null) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            currentMode = MODE.WORK;
+            timeRemaining = getDurationInSeconds(workInput, 25);
+
+            updateDisplay();
+            statusText.textContent = "Ready";
+
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+
+            // Re-enable input adjustments on reset
+            setInputsDisabled(false);
+
+            announceToScreenReader("Timer reset.");
+        }
+
+        /* ==========================================================================
+           EVENT LISTENERS & INITIALIZATION
+           ========================================================================== */
+        
+        // Button Listeners
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        muteBtn.addEventListener('click', toggleMute);
+
+        // Dynamic Input Change Listeners
+        workInput.addEventListener('input', () => {
+            if (timerInterval === null && currentMode === MODE.WORK) {
+                timeRemaining = getDurationInSeconds(workInput, 25);
+                updateDisplay();
+            }
+        });
+
+        breakInput.addEventListener('input', () => {
+            if (timerInterval === null && currentMode === MODE.BREAK) {
+                timeRemaining = getDurationInSeconds(breakInput, 5);
+                updateDisplay();
+            }
+        });
+
+        // Initialize state
+        timeRemaining = getDurationInSeconds(workInput, 25);
+        updateDisplay();
+    </script>
+</body>
+</html>
