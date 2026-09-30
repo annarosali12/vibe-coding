@@ -143,7 +143,7 @@
     display: block;
     border-radius: 10px;
     border: 1px solid var(--line);
-    background: var(--cream); /* shows as a soft placeholder if finished.jpg is missing */
+    background: var(--cream); /* shows as a soft placeholder if macandcheese2.jpg is missing */
   }
 
   /* Second photo, shown at the bottom of the card under the steps.
@@ -240,7 +240,7 @@
     <div class="card__photo-wrap">
       <img
         class="card__photo"
-        src="finished.jpg"
+        src="macandcheese2.jpg"
         alt="Baked macaroni and cheese in a casserole dish, golden and bubbling"
         width="340"
         height="255"
@@ -283,7 +283,7 @@
     <div class="card__photo-wrap card__photo-wrap--bottom">
       <img
         class="card__photo card__photo--finished"
-        src="photo2.jpg"
+        src="macandcheese1.jpg"
         alt="The finished baked macaroni and cheese, golden and bubbling, fresh out of the oven"
         width="340"
         height="255"
@@ -299,13 +299,13 @@
     // This page is intentionally static: there's no user input to
     // validate and no state to manage, so there isn't much for
     // JavaScript to do. The one useful thing script can help with
-    // is being graceful if "finished.jpg" hasn't been placed in the
+    // is being graceful if "macandcheese2.jpg" hasn't been placed in the
     // folder yet, so the page doesn't show a broken-image icon.
     // ------------------------------------------------------------
 
     // Grab both photo elements. There are two now: the original
-    // process/hero shot (finished.jpg) and the finished-dish shot at
-    // the bottom of the card (photo2.jpg).
+    // process/hero shot (macandcheese2.jpg) and the finished-dish shot at
+    // the bottom of the card (macandcheese1.jpg).
     const photos = document.querySelectorAll('.card__photo');
 
     // For each photo, if its file fails to load, swap in a simple
@@ -314,8 +314,8 @@
     photos.forEach((photo) => {
       photo.addEventListener('error', () => {
         // Read the filename straight off the src that failed, so the
-        // placeholder message always names the right file (finished.jpg
-        // vs photo2.jpg) without needing to hardcode it twice.
+        // placeholder message always names the right file (macandcheese2.jpg
+        // vs macandcheese1.jpg) without needing to hardcode it twice.
         const missingFile = photo.getAttribute('src');
 
         photo.src =
