@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hi Friend! Page Not Found - Anna Rosali</title>
+    
+    <!-- Google Fonts for warm, legible, accessible typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN for smooth responsive utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+      // Tailoring custom colors to specification: Chocolate Brown, Warm Cream, and Vibrant Turquoise
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              chocolate: {
+                900: '#2C1A16',
+                800: '#3E2723',
+                700: '#4A2E2B',
+                600: '#5D4037',
+              },
+              turquoise: {
+                DEFAULT: '#00BCD4',
+                light: '#26C6DA',
+                dark: '#008B8B',
+                deep: '#16A085',
+                glow: 'rgba(38, 198, 218, 0.4)'
+              },
+              cream: {
+                DEFAULT: '#FFFDD0',
+                soft: '#FAF3E0',
+                card: '#FDFBF7'
+              }
+            },
+            fontFamily: {
+              heading: ['Fredoka', 'sans-serif'],
+              body: ['Quicksand', 'sans-serif']
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+      /* Smooth floating animations for background aesthetic shapes */
+      @keyframes floatSlow {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-18px) rotate(5deg); }
+      }
+
+      @keyframes floatReverse {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(15px) rotate(-6deg); }
+      }
+
+      /* Relaxed, Gentle Slow Tail Wag Animation (3-second duration for calm feel) */
+      @keyframes wagTailSlow {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-12deg); }
+        75% { transform: rotate(12deg); }
+      }
+
+      /* Subtle Ear Wiggle */
+      @keyframes wiggleEar {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-8deg); }
+      }
+
+      .animate-float-slow {
+        animation: floatSlow 6s ease-in-out infinite;
+      }
+
+      .animate-float-reverse {
+        animation: floatReverse 7s ease-in-out infinite;
+      }
+
+      .wagging-slow {
+        animation: wagTailSlow 3s ease-in-out infinite;
+        transform-origin: 145px 125px; /* Tail pivot point on dog SVG */
+      }
+
+      .ear-bounce {
+        animation: wiggleEar 2s ease-in-out infinite;
+        transform-origin: 85px 65px;
+      }
+
+      /* Clear, accessible keyboard navigation focus indicators */
+      a:focus-visible, button:focus-visible, div[tabindex="0"]:focus-visible {
+        outline: 4px solid #00BCD4;
+        outline-offset: 4px;
+        border-radius: 12px;
+      }
+
+      /* Cursor trail sparkles */
+      .sparkle {
+        position: fixed;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #26C6DA;
+        pointer-events: none;
+        z-index: 50;
+        transition: transform 0.2s ease-out, opacity 0.5s ease-out;
+      }
+    </style>
+</head>
+<body class="bg-cream text-chocolate-800 font-body min-h-screen flex flex-col justify-between selection:bg-turquoise selection:text-cream-card overflow-x-hidden relative">
+
+    <!-- Background Floating Decorative Elements (Hidden from assistive devices using aria-hidden) -->
+    <div class="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <!-- Floating Turquoise Paw Print 1 -->
+        <svg class="absolute top-12 left-[8%] w-16 h-16 text-turquoise-light opacity-30 animate-float-slow" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M6,10A2,2 0 0,1 4,8A2,2 0 0,1 6,6A2,2 0 0,1 8,8A2,2 0 0,1 6,10M18,10A2,2 0 0,1 16,8A2,2 0 0,1 18,6A2,2 0 0,1 20,8A2,2 0 0,1 18,10M12,13C15,13 18.5,14.5 18.5,17.5C18.5,19 17,20.5 15,20.5C13.5,20.5 12.8,19.5 12,19.5C11.2,19.5 10.5,20.5 9,20.5C7,20.5 5.5,19 5.5,17.5C5.5,14.5 9,13 12,13Z"/>
+        </svg>
+
+        <!-- Floating Turquoise Paw Print 2 -->
+        <svg class="absolute bottom-24 right-[10%] w-20 h-20 text-turquoise opacity-20 animate-float-reverse" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M6,10A2,2 0 0,1 4,8A2,2 0 0,1 6,6A2,2 0 0,1 8,8A2,2 0 0,1 6,10M18,10A2,2 0 0,1 16,8A2,2 0 0,1 18,6A2,2 0 0,1 20,8A2,2 0 0,1 18,10M12,13C15,13 18.5,14.5 18.5,17.5C18.5,19 17,20.5 15,20.5C13.5,20.5 12.8,19.5 12,19.5C11.2,19.5 10.5,20.5 9,20.5C7,20.5 5.5,19 5.5,17.5C5.5,14.5 9,13 12,13Z"/>
+        </svg>
+
+        <!-- Floating Chocolate Bone -->
+        <svg class="absolute top-1/3 right-[8%] w-14 h-14 text-chocolate-700 opacity-15 animate-float-slow" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,10.5C18.2,10.5 17.5,11 17.1,11.7C15.6,10.8 13.8,10.5 12,10.5C10.2,10.5 8.4,10.8 6.9,11.7C6.5,11 5.8,10.5 5,10.5C3.6,10.5 2.5,11.6 2.5,13C2.5,14.2 3.3,15.2 4.4,15.4C4.1,15.9 4,16.4 4,17C4,18.4 5.1,19.5 6.5,19.5C7.6,19.5 8.5,18.8 8.8,17.8C9.8,18.3 10.9,18.5 12,18.5C13.1,18.5 14.2,18.3 15.2,17.8C15.5,18.8 16.4,19.5 17.5,19.5C18.9,19.5 20,18.4 20,17C20,16.4 19.9,15.9 19.6,15.4C20.7,15.2 21.5,14.2 21.5,13C21.5,11.6 20.4,10.5 19,10.5Z" />
+        </svg>
+    </div>
+
+    <!-- Accessible Header -->
+    <header class="w-full max-w-6xl mx-auto px-6 py-6 flex justify-between items-center z-10">
+        <a href="https://annarosali12.github.io/vibe-coding" 
+           class="group flex items-center space-x-3 text-chocolate-800 font-heading text-xl font-bold transition-transform transform hover:scale-105 focus:outline-none" 
+           aria-label="Anna Rosali Homepage">
+            <span class="w-10 h-10 rounded-full bg-turquoise flex items-center justify-center text-cream-card font-bold shadow-md group-hover:bg-turquoise-dark transition-colors">
+                AR
+            </span>
+            <span class="tracking-wide text-chocolate-800">Anna Rosali</span>
+        </a>
+
+        <!-- Sound toggle option via Web Audio API -->
+        <button id="soundToggle" 
+                class="flex items-center space-x-2 bg-cream-soft border-2 border-chocolate-700/20 px-4 py-2 rounded-full text-sm font-semibold hover:bg-turquoise/10 transition-all text-chocolate-800 focus:outline-none" 
+                aria-label="Toggle friendly sound effects">
+            <span id="soundIcon" aria-hidden="true">🔊</span>
+            <span id="soundText">Sound On</span>
+        </button>
+    </header>
+
+    <!-- Main Accessible Card Container -->
+    <main class="w-full max-w-3xl mx-auto px-6 py-6 flex-grow flex flex-col justify-center items-center text-center z-10">
+        <div class="bg-cream-card rounded-3xl p-8 sm:p-12 shadow-2xl border-4 border-chocolate-700/10 backdrop-blur-sm w-full max-w-2xl transform transition-all duration-300 hover:shadow-turquoise-glow">
+            
+            <!-- Interactive Happy Bearded Black Dog Mascot -->
+            <div class="mb-6 flex justify-center">
+                <div class="relative cursor-pointer group" 
+                     id="dogContainer" 
+                     tabindex="0" 
+                     role="button" 
+                     aria-label="Interactive Happy Bearded Black Dog named Barnaby. Click or press Enter to hear a cheerful bark and wag his tail!">
+                    
+                    <!-- SVG Vector Black Bearded Dog (Scottish Terrier / Schnauzer Inspired) -->
+                    <svg class="w-52 h-52 sm:w-60 sm:h-60 drop-shadow-xl" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Turquoise Circle Backdrop Glow -->
+                        <circle cx="100" cy="100" r="80" fill="#00BCD4" fill-opacity="0.2" stroke="#26C6DA" stroke-width="3" stroke-dasharray="6 6" />
+
+                        <!-- Wagging Dog Tail - Slow Gentle Sway -->
+                        <path id="dogTail" class="wagging-slow" d="M140 120 C160 110, 175 90, 170 70 C165 65, 155 75, 150 90 Z" fill="#2C1A16" />
+
+                        <!-- Dog Body (Deep Chocolate / Charcoal Black Fur) -->
+                        <path d="M60 130 C60 100, 140 100, 140 130 C140 160, 60 160, 60 130 Z" fill="#2C1A16" />
+                        <!-- Chest Fur Highlights -->
+                        <path d="M85 125 C95 115, 105 115, 115 125 C110 145, 90 145, 85 125 Z" fill="#4A2E2B" opacity="0.6" />
+
+                        <!-- Dog Paws -->
+                        <ellipse cx="75" cy="155" rx="12" ry="8" fill="#2C1A16" />
+                        <ellipse cx="125" cy="155" rx="12" ry="8" fill="#2C1A16" />
+                        <ellipse cx="93" cy="158" rx="10" ry="7" fill="#2C1A16" />
+                        <ellipse cx="107" cy="158" rx="10" ry="7" fill="#2C1A16" />
+
+                        <!-- Head Base -->
+                        <path d="M65 85 C65 55, 135 55, 135 85 C135 110, 65 110, 65 85 Z" fill="#2C1A16" />
+
+                        <!-- Dog Ears (Positions on outer sides of the head) -->
+                        <path class="ear-bounce" d="M66 72 C42 75, 38 108, 54 116 C66 122, 70 102, 68 85 Z" fill="#3E2723" />
+                        <path class="ear-bounce" d="M64 76 C48 80, 44 104, 55 110 C63 114, 66 100, 66 86 Z" fill="#2C1A16" opacity="0.5" />
+
+                        <path class="ear-bounce" d="M134 72 C158 75, 162 108, 146 116 C134 122, 130 102, 132 85 Z" fill="#3E2723" />
+                        <path class="ear-bounce" d="M136 76 C152 80, 156 104, 145 110 C137 114, 134 100, 134 86 Z" fill="#2C1A16" opacity="0.5" />
+
+                        <!-- Friendly Expressive Eyes -->
+                        <circle cx="82" cy="78" r="6" fill="#FFFDD0" />
+                        <circle cx="118" cy="78" r="6" fill="#FFFDD0" />
+                        <circle cx="83" cy="78" r="4" fill="#2C1A16" />
+                        <circle cx="117" cy="78" r="4" fill="#2C1A16" />
+                        <!-- Eye Catchlights -->
+                        <circle cx="84.5" cy="76.5" r="1.5" fill="#FFFDD0" />
+                        <circle cx="118.5" cy="76.5" r="1.5" fill="#FFFDD0" />
+
+                        <!-- Bushy Eyebrows -->
+                        <path d="M74 68 C80 64, 88 66, 90 70" stroke="#4A2E2B" stroke-width="4" stroke-linecap="round" />
+                        <path d="M126 68 C120 64, 112 66, 110 70" stroke="#4A2E2B" stroke-width="4" stroke-linecap="round" />
+
+                        <!-- Iconic Dog Beard & Snoot (Fluffy Beard Texture) -->
+                        <path d="M72 88 C68 120, 85 138, 100 138 C115 138, 132 120, 128 88 C115 95, 85 95, 72 88 Z" fill="#3E2723" />
+                        <path d="M78 95 C75 122, 88 135, 100 135 C112 135, 125 122, 122 95 Z" fill="#4A2E2B" />
+
+                        <!-- Cute Nose -->
+                        <ellipse cx="100" cy="92" rx="9" ry="6" fill="#2C1A16" />
+                        <ellipse cx="98" cy="90" rx="3" ry="1.5" fill="#5D4037" />
+
+                        <!-- Happy Open Mouth / Tongue inside beard -->
+                        <path d="M92 104 Q100 116 108 104 Z" fill="#2C1A16" />
+                        <path id="dogTongue" d="M95 106 Q100 120 105 106 Z" fill="#FF8A80" />
+
+                        <!-- Stylish Turquoise Bandana Collar -->
+                        <path d="M70 102 L130 102 L100 122 Z" fill="#00BCD4" />
+                        <path d="M70 102 L130 102 L100 107 Z" fill="#26C6DA" />
+                        <!-- Bandana Pattern Dots -->
+                        <circle cx="90" cy="107" r="1.5" fill="#FFFDD0" />
+                        <circle cx="100" cy="112" r="1.5" fill="#FFFDD0" />
+                        <circle cx="110" cy="107" r="1.5" fill="#FFFDD0" />
+                    </svg>
+
+                    <!-- Interactive Hint Bubble -->
+                    <span class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-turquoise text-cream-card text-xs px-3 py-1 rounded-full opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all font-semibold shadow-md whitespace-nowrap">
+                        🐾 Click me to say woof!
+                    </span>
+                </div>
+            </div>
+
+            <!-- Specified Greeting Message -->
+            <h1 class="font-heading text-3xl sm:text-5xl font-bold text-chocolate-800 mb-4 tracking-tight">
+                Hi friend! I'm glad you're here!
+            </h1>
+            
+            <p class="text-chocolate-700 text-lg sm:text-xl mb-8 leading-relaxed max-w-lg mx-auto font-medium">
+                Barnaby the bearded pup and I noticed the page you requested isn't here. But don't worry—you're never lost when you're in good company!
+            </p>
+
+            <!-- Prominent Link back to Home Page -->
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="https://annarosali12.github.io/vibe-coding" 
+                   class="w-full sm:w-auto inline-flex items-center justify-center space-x-3 bg-turquoise hover:bg-turquoise-dark text-cream-card font-heading text-xl font-bold px-9 py-4 rounded-full shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 group focus:ring-4 focus:ring-turquoise-light/50"
+                   aria-label="Return to Anna Rosali's main homepage">
+                    <span>Back to Homepage</span>
+                    <svg class="w-6 h-6 transform group-hover:translate-x-1.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-6xl mx-auto px-6 py-6 text-center text-chocolate-600 text-sm z-10">
+        <p>© <span id="currentYear"></span> Anna Rosali. Built with warmth, care, and good vibes.</p>
+    </footer>
+
+    <!-- Vanilla JavaScript logic -->
+    <script>
+      // =========================================================================
+      // Version: v1.3 - Slowed tail wag animation for a relaxed, serene vibe
+      // Description: Clean, vanilla JS running exclusively client-side in browser.
+      // =========================================================================
+
+      document.addEventListener("DOMContentLoaded", function() {
+
+          // ---------------------------------------------------------------------
+          // BLOCK 1: Dynamic Year Updater
+          // Plain Language: Automatically inserts the current calendar year into 
+          // the footer so the copyright notice stays accurate.
+          // ---------------------------------------------------------------------
+          const yearElement = document.getElementById("currentYear");
+          if (yearElement) {
+              yearElement.textContent = new Date().getFullYear();
+          }
+
+          // ---------------------------------------------------------------------
+          // BLOCK 2: Dog Wagging and Bark Interactive Trigger
+          // Plain Language: Listens for clicks or keyboard presses on the dog mascot.
+          // Slightly accelerates the tail sway upon interaction, then gently
+          // resets back to the relaxed 3-second gentle sway rate.
+          // ---------------------------------------------------------------------
+          const dogContainer = document.getElementById("dogContainer");
+          const dogTail = document.getElementById("dogTail");
+          let wagTimeout = null;
+
+          function triggerDogHappiness() {
+              if (dogTail) {
+                  // Momentary polite speed up for interaction feedback (1 second per cycle)
+                  dogTail.style.animationDuration = "1.0s";
+
+                  // Reset tail back to standard slow, relaxed 3s sway after 2 seconds
+                  clearTimeout(wagTimeout);
+                  wagTimeout = setTimeout(function() {
+                      dogTail.style.animationDuration = "3.0s";
+                  }, 2000);
+              }
+
+              // Synthesize a soft dog bark sound effect
+              playFriendlyBark();
+          }
+
+          // Attach click and accessibility keyboard event listeners
+          if (dogContainer) {
+              dogContainer.addEventListener("click", triggerDogHappiness);
+
+              dogContainer.addEventListener("keydown", function(e) {
+                  if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault(); // Prevent page scroll on spacebar press
+                      triggerDogHappiness();
+                  }
+              });
+          }
+
+          // ---------------------------------------------------------------------
+          // BLOCK 3: Web Audio API Sound Synthesizer (Zero External Audio Files)
+          // Plain Language: Generates a soft, friendly bark sound directly using 
+          // browser math frequencies so no mp3 file or external server is needed.
+          // ---------------------------------------------------------------------
+          let soundOn = true; // Enabled by default
+          const soundToggleBtn = document.getElementById("soundToggle");
+          const soundIcon = document.getElementById("soundIcon");
+          const soundText = document.getElementById("soundText");
+
+          // Sound Toggle Button click listener
+          if (soundToggleBtn) {
+              soundToggleBtn.addEventListener("click", function() {
+                  soundOn = !soundOn;
+
+                  if (soundOn) {
+                      soundIcon.textContent = "🔊";
+                      soundText.textContent = "Sound On";
+                      soundToggleBtn.classList.remove("opacity-60");
+                      playFriendlyBark(); // Play test sound when enabled
+                  } else {
+                      soundIcon.textContent = "🔇";
+                      soundText.textContent = "Sound Off";
+                      soundToggleBtn.classList.add("opacity-60");
+                  }
+              });
+          }
+
+          function playFriendlyBark() {
+              if (!soundOn) return; // Respect user preference if sound is toggled off
+
+              try {
+                  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                  if (!AudioCtx) return;
+
+                  const audioCtx = new AudioCtx();
+
+                  // Create dual oscillators for a natural warm dog bark tone
+                  const osc1 = audioCtx.createOscillator();
+                  const osc2 = audioCtx.createOscillator();
+                  const gainNode = audioCtx.createGain();
+
+                  osc1.type = "sawtooth";
+                  osc2.type = "sine";
+
+                  // Bark pitch drop envelope (Starts higher pitch, quickly drops)
+                  const now = audioCtx.currentTime;
+                  osc1.frequency.setValueAtTime(320, now);
+                  osc1.frequency.exponentialRampToValueAtTime(140, now + 0.15);
+
+                  osc2.frequency.setValueAtTime(260, now);
+                  osc2.frequency.exponentialRampToValueAtTime(110, now + 0.15);
+
+                  // Volume envelope (Short soft "Woof!")
+                  gainNode.gain.setValueAtTime(0.01, now);
+                  gainNode.gain.linearRampToValueAtTime(0.2, now + 0.03);
+                  gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+                  // Connect output
+                  osc1.connect(gainNode);
+                  osc2.connect(gainNode);
+                  gainNode.connect(audioCtx.destination);
+
+                  // Trigger two quick barks for a happy "woof-woof"
+                  osc1.start(now);
+                  osc2.start(now);
+                  osc1.stop(now + 0.18);
+                  osc2.stop(now + 0.18);
+
+              } catch (e) {
+                  // Gracefully ignore audio permissions errors if blocked by browser policies
+                  console.log("Audio playback limited by browser settings.");
+              }
+          }
+
+          // ---------------------------------------------------------------------
+          // BLOCK 4: Interactive Pointer Sparkle Trail
+          // Plain Language: Adds small turquoise glowing dots under the mouse pointer
+          // as visitors move around the page for a subtle interactive feel.
+          // ---------------------------------------------------------------------
+          let lastSparkle = 0;
+
+          document.addEventListener("mousemove", function(e) {
+              const currentTime = Date.now();
+              // Rate limit sparkle creation to every 70ms for fast performance
+              if (currentTime - lastSparkle < 70) return;
+              lastSparkle = currentTime;
+
+              const particle = document.createElement("div");
+              particle.className = "sparkle";
+              particle.style.left = e.clientX + "px";
+              particle.style.top = e.clientY + "px";
+
+              document.body.appendChild(particle);
+
+              // Expand and fade out particle
+              setTimeout(function() {
+                  particle.style.transform = "scale(1.8)";
+                  particle.style.opacity = "0";
+              }, 20);
+
+              // Clean up particle element from memory
+              setTimeout(function() {
+                  if (particle.parentNode) {
+                      particle.parentNode.removeChild(particle);
+                  }
+              }, 550);
+          });
+
+      });
+    </script>
+</body>
+</html>
