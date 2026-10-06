@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anna's Pet Paradise & Web Corner 🐾</title>
+
+  <!--
+    Version: v1.0 - Initial Build
+    Author: Anna
+    Description: Personal homepage linking to pet-themed web apps with cheer-up interactive elements.
+  -->
+
+  <!-- Tailwind CSS CDN for modern responsive utility styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome CDN for cute icons (paws, cats, dogs, hearts, camera) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Canvas Confetti CDN for the instant cheer button -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Google Fonts: Quicksand for playful headers, Inter for readable body text -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* Custom font bindings */
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #FDFBF7;
+      color: #332C27;
+    }
+    h1, h2, h3, .font-heading {
+      font-family: 'Quicksand', sans-serif;
+    }
+
+    /* Soft floating animation for cute background icons and badges */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(3deg); }
+    }
+    .animate-float {
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+
+    /* Custom keyboard focus ring style for enhanced accessibility */
+    a:focus-visible, button:focus-visible {
+      outline: 3px solid #E07A5F !important;
+      outline-offset: 4px !important;
+      border-radius: 0.5rem;
+    }
+
+    /* Wiggle hover animation for interactive buttons */
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-5deg); }
+      75% { transform: rotate(5deg); }
+    }
+    .hover-wiggle:hover {
+      animation: wiggle 0.3s ease-in-out infinite;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between selection:bg-rose-200 selection:text-rose-900">
+
+  <!-- Main Container -->
+  <div class="relative overflow-hidden min-h-screen flex flex-col justify-between">
+
+    <!-- Decorative Top Background Blob -->
+    <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-gradient-to-b from-amber-100/60 via-rose-100/40 to-transparent -z-10 rounded-b-full blur-2xl pointer-events-none" aria-hidden="true"></div>
+
+    <!-- Header / Hero Section -->
+    <header class="w-full max-w-5xl mx-auto px-4 pt-10 pb-6 text-center">
+      <!-- Pet Badge Pill -->
+      <div class="inline-flex items-center gap-2 bg-amber-100 text-amber-900 px-4 py-1.5 rounded-full text-sm font-medium mb-6 shadow-sm border border-amber-200/60 animate-float">
+        <i class="fa-solid fa-paw text-amber-600" aria-hidden="true"></i>
+        <span>Welcome to Anna's Happy Pet Corner</span>
+        <i class="fa-solid fa-heart text-rose-500" aria-hidden="true"></i>
+      </div>
+
+      <!-- Main Title -->
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold font-heading text-slate-800 tracking-tight leading-tight">
+        Hi, I'm <span class="text-rose-600 underline decoration-amber-300 decoration-wavy decoration-2">Anna</span>! 🐾
+      </h1>
+
+      <!-- Bio Paragraph -->
+      <p class="mt-5 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        I'm a proud dog mom to a <strong class="text-slate-800">clever, nosy, clicker-trained pup</strong> and a very busy <strong class="text-slate-800">4.5-pound kitten</strong>—a tiny fuzzy ball of adorable chaos who loves stealing water out of glasses and food off plates!
+      </p>
+
+      <!-- Interactive Cheer-Up Actions Row -->
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <!-- Instant Cheer Confetti Button -->
+        <button id="cheerBtn" class="bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-semibold px-6 py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 flex items-center gap-2 text-base active:scale-95" aria-label="Press to release cheerful confetti and sound">
+          <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i>
+          <span>Need a Instant Cheer Up?</span>
+        </button>
+
+        <!-- Clicker Simulator Button -->
+        <button id="clickerBtn" class="bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold px-5 py-3.5 rounded-2xl border border-amber-200 shadow-sm transition-all duration-200 flex items-center gap-2 text-base active:scale-95 hover-wiggle" aria-label="Simulate a training clicker sound for dogs">
+          <i class="fa-solid fa-bullhorn text-amber-600" aria-hidden="true"></i>
+          <span>Clicker Sound 🐶</span>
+        </button>
+      </div>
+
+      <!-- Audio Element for Clicker Simulator (Self-contained synthesized Web Audio API fallback in JS) -->
+      <div id="toastMessage" class="hidden fixed bottom-6 right-6 bg-slate-800 text-white px-5 py-3 rounded-xl shadow-2xl z-50 transition-all duration-300 items-center gap-3 border border-slate-700" role="status" aria-live="polite">
+        <i class="fa-solid fa-circle-check text-emerald-400" aria-hidden="true"></i>
+        <span id="toastText">Happiness boost activated! ✨</span>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="w-full max-w-6xl mx-auto px-4 py-8 flex-grow">
+      
+      <!-- Section Title -->
+      <div class="text-center mb-10">
+        <h2 class="text-2xl sm:text-3xl font-bold font-heading text-slate-800">
+          Explore My Cute Web Projects
+        </h2>
+        <p class="text-slate-500 mt-2 text-sm sm:text-base">
+          Click any card below to launch the app!
+        </p>
+      </div>
+
+      <!-- Projects Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+
+        <!-- Card 1: Kitten's Birthday Countdown -->
+        <article class="bg-white rounded-3xl p-6 shadow-md hover:shadow-xl border border-slate-100 transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-rose-100/50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
+          <div>
+            <div class="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-inner">
+              <i class="fa-solid fa-cat" aria-hidden="true"></i>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md">Countdown</span>
+              <span class="text-xs text-slate-400">4.5 lbs of Chaos</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 font-heading mb-2 group-hover:text-rose-600 transition-colors">
+              Kitten's 1st Birthday
+            </h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-6">
+              A live countdown clock marking the days, hours, and minutes until my fuzzy little water-stealing kitten turns one!
+            </p>
+          </div>
+          <a href="https://annarosali12.github.io/vibe-coding/countdown/" 
+             target="_blank" 
+             rel="noopener noreferrer" 
+             class="w-full bg-slate-50 hover:bg-rose-500 hover:text-white text-slate-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group-hover:shadow-md"
+             aria-label="Open Kitten's First Birthday Countdown Timer in a new tab">
+            <span>Visit Countdown</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>
+          </a>
+        </article>
+
+        <!-- Card 2: Dog's Webpage -->
+        <article class="bg-white rounded-3xl p-6 shadow-md hover:shadow-xl border border-slate-100 transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-amber-100/50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
+          <div>
+            <div class="w-14 h-14 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-inner">
+              <i class="fa-solid fa-dog" aria-hidden="true"></i>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md">Pet Page</span>
+              <span class="text-xs text-slate-400">Clicker Trained Genius</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 font-heading mb-2 group-hover:text-amber-600 transition-colors">
+              My Dog's Webpage
+            </h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-6">
+              Dedicated page celebrating my clever and curious dog. Learn about tricks, habits, and favorite clicker treats!
+            </p>
+          </div>
+          <a href="https://annarosali12.github.io/vibe-coding/my-page/" 
+             target="_blank" 
+             rel="noopener noreferrer" 
+             class="w-full bg-slate-50 hover:bg-amber-500 hover:text-white text-slate-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group-hover:shadow-md"
+             aria-label="Open Dog's Webpage in a new tab">
+            <span>Visit Dog's Page</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>
+          </a>
+        </article>
+
+        <!-- Card 3: Photo Gallery Slider -->
+        <article class="bg-white rounded-3xl p-6 shadow-md hover:shadow-xl border border-slate-100 transition-all duration-300 flex flex-col justify-between group hover:-translate-y-1 relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-24 h-24 bg-sky-100/50 rounded-bl-full -z-0 pointer-events-none group-hover:scale-110 transition-transform"></div>
+          <div>
+            <div class="w-14 h-14 bg-sky-100 text-sky-600 rounded-2xl flex items-center justify-center text-2xl mb-5 shadow-inner">
+              <i class="fa-solid fa-images" aria-hidden="true"></i>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-600 bg-sky-50 px-2.5 py-1 rounded-md">Gallery</span>
+              <span class="text-xs text-slate-400">Photo Slider</span>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 font-heading mb-2 group-hover:text-sky-600 transition-colors">
+              Photo Gallery Slider
+            </h3>
+            <p class="text-slate-600 text-sm leading-relaxed mb-6">
+              An interactive image slider showcasing adorable moments, funny poses, and heartwarming pet memories.
+            </p>
+          </div>
+          <a href="https://annarosali12.github.io/vibe-coding/pictures/" 
+             target="_blank" 
+             rel="noopener noreferrer" 
+             class="w-full bg-slate-50 hover:bg-sky-500 hover:text-white text-slate-700 font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 group-hover:shadow-md"
+             aria-label="Open Photo Gallery Slider in a new tab">
+            <span>View Photos</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs" aria-hidden="true"></i>
+          </a>
+        </article>
+
+      </div>
+
+      <!-- Interactive Pet Fact / Cheer Widget -->
+      <section class="mt-12 bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-purple-500/10 rounded-3xl p-6 sm:p-8 border border-rose-100 text-center relative overflow-hidden">
+        <div class="max-w-xl mx-auto">
+          <div class="inline-block p-3 bg-white rounded-full text-rose-500 shadow-sm mb-3">
+            <i class="fa-solid fa-quote-left text-xl" aria-hidden="true"></i>
+          </div>
+          <h3 class="text-xl font-bold text-slate-800 font-heading mb-2">Pet Mom Secret of the Day</h3>
+          <p id="petFactQuote" class="text-slate-700 text-base sm:text-lg italic min-h-[3.5rem] flex items-center justify-center">
+            "A glass left unattended is legally kitten property!" 🐾
+          </p>
+          <button id="newFactBtn" class="mt-4 bg-white hover:bg-rose-50 text-slate-800 font-medium px-4 py-2 rounded-xl border border-slate-200 text-sm transition-all duration-200 hover:shadow-sm flex items-center gap-2 mx-auto">
+            <i class="fa-solid fa-rotate text-rose-500" aria-hidden="true"></i>
+            <span>Get Another Funny Quote</span>
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer Section -->
+    <footer class="w-full max-w-5xl mx-auto px-4 py-8 text-center text-slate-500 text-sm border-t border-slate-200/60 mt-10">
+      <p class="flex items-center justify-center gap-1.5 font-medium">
+        <span>Made with</span>
+        <i class="fa-solid fa-heart text-rose-500 animate-pulse" aria-label="love"></i>
+        <span>and treats by Anna</span>
+      </p>
+      <p class="mt-1 text-xs text-slate-400">
+        © <span id="currentYear"></span> Anna's Vibe Coding Apps. All rights reserved.
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    // v1.0 - initial build
+    // Plain language JavaScript implementation for interactivity & cheer features
+
+    document.addEventListener('DOMContentLoaded', () => {
+      
+      // Dynamic footer year setting
+      // Updates the year automatically so the copyright stays current
+      const yearSpan = document.getElementById('currentYear');
+      if (yearSpan) {
+        yearSpan.textContent = new Date().getFullYear();
+      }
+
+      // --- CHEER CONFETTI FUNCTIONALITY ---
+      // Triggers festive multi-colored confetti whenever the user clicks the Instant Cheer button
+      const cheerBtn = document.getElementById('cheerBtn');
+      cheerBtn.addEventListener('click', () => {
+        // Fire canvas-confetti celebration explosion
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#f43f5e', '#f59e0b', '#38bdf8', '#a855f7']
+          });
+        }
+        showToast("Hope your day gets even brighter! ✨🐶🐱");
+      });
+
+      // --- SYNTHESIZED CLICKER SOUND (Web Audio API) ---
+      // Creates a real clicker sound effect using the browser's audio context
+      // No external audio file needed! Runs 100% locally in browser.
+      const clickerBtn = document.getElementById('clickerBtn');
+      clickerBtn.addEventListener('click', () => {
+        playClickerSound();
+        showToast("Click! Good dog! 🦴");
+      });
+
+      function playClickerSound() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const ctx = new AudioContext();
+
+          // Quick dual impulse frequency simulating a metallic training clicker
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(1200, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.03);
+
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.03);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc.start();
+          osc.stop(ctx.currentTime + 0.03);
+        } catch (e) {
+          // Fallback if browser audio context is blocked
+          console.log("Audio not allowed yet:", e);
+        }
+      }
+
+      // --- FUNNY PET QUOTES / FACTS GENERATOR ---
+      // A rotating list of cheerful, relatable quotes about Anna's dog and kitten
+      const petQuotes = [
+        "\"A glass of water left unattended is legally kitten property!\" 🐱💧",
+        "\"Clicker training tip: 1 click = 1 treat = 1 extremely happy dog!\" 🐶🦴",
+        "\"4.5 pounds of fluff can somehow occupy 100% of a king-sized bed.\" 🛋️",
+        "\"Nosy dogs make the best assistant coders.\" 💻🐾",
+        "\"Food on a plate is just a kitten snack waiting to be swiped!\" 🐟",
+        "\"Happiness is a tail wag and a purring kitten.\" ❤️"
+      ];
+
+      const petFactQuote = document.getElementById('petFactQuote');
+      const newFactBtn = document.getElementById('newFactBtn');
+      let currentQuoteIndex = 0;
+
+      newFactBtn.addEventListener('click', () => {
+        currentQuoteIndex = (currentQuoteIndex + 1) % petQuotes.length;
+        // Fade effect transition
+        petFactQuote.style.opacity = '0';
+        setTimeout(() => {
+          petFactQuote.textContent = petQuotes[currentQuoteIndex];
+          petFactQuote.style.opacity = '1';
+        }, 150);
+      });
+
+      // Smooth opacity transition styling for quote
+      petFactQuote.style.transition = 'opacity 0.2s ease-in-out';
+
+      // --- TOAST NOTIFICATION HELPER ---
+      // Displays a polite notification at the bottom right when interactions occur
+      let toastTimeout;
+      function showToast(message) {
+        const toast = document.getElementById('toastMessage');
+        const toastText = document.getElementById('toastText');
+        
+        toastText.textContent = message;
+        toast.classList.remove('hidden');
+        toast.classList.add('flex');
+
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toast.classList.add('hidden');
+          toast.classList.remove('flex');
+        }, 3000);
+      }
+    });
+  </script>
+</body>
+</html>
