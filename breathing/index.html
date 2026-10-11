@@ -1,0 +1,269 @@
+<!-- v1.2 - Complete single-file breathing exercise application -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing Exercise App - v1.2</title>
+    <!-- Tailwind CSS CDN for styling and responsive layout utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS variables and global styling following the specified color palette */
+        :root {
+            --color-dark: #291528;
+            --color-deep: #481D46;
+            --color-accent: #9E829C;
+        }
+
+        body {
+            background-color: #faf8fa;
+            color: var(--color-dark);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Smooth transformation property for the breathing circle */
+        .breathing-circle {
+            transition: transform 0.05s linear;
+            will-change: transform;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between p-6 select-none">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-md text-center pt-4" role="banner">
+        <h1 class="text-2xl sm:text-3xl font-semibold tracking-wide text-[#291528]">Mindful Breathing</h1>
+        <p class="text-sm text-[#9E829C] mt-1">Follow the expanding and contracting rhythm to center your mind.</p>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex flex-col items-center justify-center my-auto w-full max-w-md py-8" role="main">
+        
+        <!-- Circle Container (Centered in the screen) -->
+        <div class="relative w-64 h-64 sm:w-72 sm:h-72 flex items-center justify-center mb-10" aria-hidden="true">
+            <!-- Background static tracking outline ring -->
+            <div class="absolute inset-0 rounded-full border-2 border-[#9E829C] opacity-30"></div>
+            
+            <!-- Dynamic breathing circle -->
+            <div id="breathingCircle" 
+                 class="breathing-circle w-32 h-32 rounded-full bg-[#481D46] shadow-xl flex items-center justify-center transform scale-50">
+                <div class="w-20 h-20 rounded-full bg-[#291528] opacity-20"></div>
+            </div>
+        </div>
+
+        <!-- Instructions and Countdown Display -->
+        <div id="statusContainer" class="text-center min-h-[5.5rem]" aria-live="polite" aria-atomic="true">
+            <h2 id="phaseInstruction" class="text-xl sm:text-2xl font-medium text-[#291528]">Press Start</h2>
+            <p id="phaseCountdown" class="text-3xl sm:text-4xl font-bold text-[#9E829C] mt-2">-</p>
+        </div>
+
+        <!-- Controls Container -->
+        <div class="flex items-center space-x-4 mt-8">
+            <button id="startBtn" 
+                    type="button"
+                    aria-label="Start breathing exercise"
+                    class="px-6 py-3 rounded-xl bg-[#291528] text-white font-medium shadow-md hover:bg-[#481D46] focus:outline-none focus:ring-2 focus:ring-[#9E829C] transition-all cursor-pointer">
+                Start
+            </button>
+            <button id="stopBtn" 
+                    type="button"
+                    disabled
+                    aria-label="Stop breathing exercise"
+                    class="px-6 py-3 rounded-xl bg-[#9E829C]/30 text-[#291528] font-medium opacity-50 cursor-not-allowed shadow-none transition-all focus:outline-none focus:ring-2 focus:ring-[#9E829C]">
+                Stop
+            </button>
+        </div>
+    </main>
+
+    <!-- Footer Information -->
+    <footer class="w-full text-center text-xs text-[#9E829C] pb-2" role="contentinfo">
+        <p>100% Client-side browser execution • No sound • No flashing</p>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // v1.2 - Vanilla JavaScript implementation for timed breathing cycle with smooth animations and accessibility support.
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Retrieve DOM elements
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const circle = document.getElementById('breathingCircle');
+            const phaseInstruction = document.getElementById('phaseInstruction');
+            const phaseCountdown = document.getElementById('phaseCountdown');
+
+            // Exercise state variables
+            let isRunning = false;
+            let currentPhaseIndex = 0;
+            let cycleInterval = null;
+            let animationFrameId = null;
+            let phaseStartTime = 0;
+            const phaseDurationMs = 4000; // Exact 4 seconds per phase
+
+            // Sequence definition containing names and scaling behavior actions
+            const phases = [
+                { name: "Breathe in", action: "grow" },
+                { name: "Hold", action: "hold-full" },
+                { name: "Breathe out", action: "shrink" },
+                { name: "Hold", action: "hold-empty" }
+            ];
+
+            /**
+             * Calculates and updates the circle's CSS transform scale based on phase progress.
+             * @param {string} action - The behavior action ('grow', 'hold-full', 'shrink', 'hold-empty')
+             * @param {number} progress - A normalized decimal from 0 to 1 representing phase completion
+             */
+            function updateCircleScale(action, progress) {
+                const minScale = 0.5; // Compact contracted scale
+                const maxScale = 1.0; // Fully expanded scale
+                let scale = minScale;
+
+                if (action === 'grow') {
+                    // Smoothly scales up from 0.5 to 1.0 over 4 seconds
+                    scale = minScale + (maxScale - minScale) * progress;
+                } else if (action === 'hold-full') {
+                    // Stays fully expanded at 1.0
+                    scale = maxScale;
+                } else if (action === 'shrink') {
+                    // Smoothly scales down from 1.0 to 0.5 over 4 seconds
+                    scale = maxScale - (maxScale - minScale) * progress;
+                } else if (action === 'hold-empty') {
+                    // Stays compact at 0.5
+                    scale = minScale;
+                }
+
+                // Apply inline transform style to the circle element
+                circle.style.transform = `scale(${scale})`;
+            }
+
+            /**
+             * High-frequency animation loop using requestAnimationFrame for butter-smooth scaling.
+             * @param {DOMHighResTimeStamp} timestamp - Current rendering time provided by browser
+             */
+            function runAnimationLoop(timestamp) {
+                if (!isRunning) return;
+
+                const elapsed = timestamp - phaseStartTime;
+                const progress = Math.min(elapsed / phaseDurationMs, 1);
+                const currentPhase = phases[currentPhaseIndex];
+
+                // Update the visual size of the circle for this frame
+                updateCircleScale(currentPhase.action, progress);
+
+                if (elapsed < phaseDurationMs) {
+                    animationFrameId = requestAnimationFrame(runAnimationLoop);
+                }
+            }
+
+            /**
+             * Advances the exercise to the next phase in the breathing sequence.
+             */
+            function advanceToNextPhase() {
+                if (!isRunning) return;
+
+                // Loop through the phase index array cyclically (0 -> 1 -> 2 -> 3 -> 0...)
+                currentPhaseIndex = (currentPhaseIndex + 1) % phases.length;
+                const phase = phases[currentPhaseIndex];
+
+                // Update text description
+                phaseInstruction.textContent = phase.name;
+                
+                // Reset timer tracker for smooth interpolation
+                phaseStartTime = performance.now();
+
+                // Setup countdown visual text (counts down from 4 to 1)
+                let secondsRemaining = 4;
+                phaseCountdown.textContent = secondsRemaining;
+
+                // Interval timer for second-by-second countdown updates
+                const countdownTimer = setInterval(() => {
+                    secondsRemaining--;
+                    if (secondsRemaining > 0) {
+                        phaseCountdown.textContent = secondsRemaining;
+                    } else {
+                        clearInterval(countdownTimer);
+                    }
+                }, 1000);
+
+                // Cancel previous frame request and start fresh frame loop for the new phase
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(runAnimationLoop);
+            }
+
+            /**
+             * Initiates the breathing session when the Start button is clicked.
+             */
+            function startExercise() {
+                if (isRunning) return;
+                isRunning = true;
+
+                // Update button availability and styling states
+                startBtn.disabled = true;
+                startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                stopBtn.disabled = false;
+                stopBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                stopBtn.classList.add('hover:bg-[#9E829C]', 'hover:text-white', 'cursor-pointer');
+
+                // Start with the very first phase ("Breathe in")
+                currentPhaseIndex = 0;
+                const initialPhase = phases[currentPhaseIndex];
+                phaseInstruction.textContent = initialPhase.name;
+                
+                let secondsRemaining = 4;
+                phaseCountdown.textContent = secondsRemaining;
+
+                // Start second-by-second countdown for the first phase
+                const initialCountdownTimer = setInterval(() => {
+                    secondsRemaining--;
+                    if (secondsRemaining > 0) {
+                        phaseCountdown.textContent = secondsRemaining;
+                    } else {
+                        clearInterval(initialCountdownTimer);
+                    }
+                }, 1000);
+
+                // Kick off smooth scaling animation
+                phaseStartTime = performance.now();
+                animationFrameId = requestAnimationFrame(runAnimationLoop);
+
+                // Set recurring interval to switch phases precisely every 4000 milliseconds (4 seconds)
+                cycleInterval = setInterval(() => {
+                    advanceToNextPhase();
+                }, phaseDurationMs);
+            }
+
+            /**
+             * Halts and resets the breathing session when the Stop button is clicked.
+             */
+            function stopExercise() {
+                if (!isRunning) return;
+                isRunning = false;
+
+                // Clear all active timers and animation frames
+                clearInterval(cycleInterval);
+                cancelAnimationFrame(animationFrameId);
+
+                // Restore button states
+                startBtn.disabled = false;
+                startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                stopBtn.disabled = true;
+                stopBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                stopBtn.classList.remove('hover:bg-[#9E829C]', 'hover:text-white', 'cursor-pointer');
+
+                // Reset display elements back to initial idle state
+                phaseInstruction.textContent = "Press Start";
+                phaseCountdown.textContent = "-";
+                circle.style.transform = "scale(0.5)";
+            }
+
+            // Register click event listeners on control buttons
+            startBtn.addEventListener('click', startExercise);
+            stopBtn.addEventListener('click', stopExercise);
+        });
+    </script>
+</body>
+</html>
