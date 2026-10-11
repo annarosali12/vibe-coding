@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elinor’s 1st Birthday Party Invitation</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Playfair Display for fancy headings & Quicksand for clean body text -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Canvas Confetti CDN for celebration effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Custom Tailwind Theme Extensions & Crystal Animations -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        elinorPink: '#E24C99',
+                        elinorPlum: '#6f2c65',
+                        elinorDark: '#470E3D',
+                        elinorLight: '#fdf2f8',
+                    },
+                    fontFamily: {
+                        fancy: ['"Playfair Display"', 'serif'],
+                        sans: ['"Quicksand"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* v1.0 - Custom crystal shimmer, glassmorphism, and background styling */
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #470E3D 0%, #6f2c65 50%, #2a0524 100%);
+            color: #fdf2f8;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-fancy {
+            font-family: 'Playfair Display', serif;
+        }
+
+        /* Glassmorphism Card Effect with Crystal Border Glow */
+        .crystal-card {
+            background: rgba(71, 14, 61, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 76, 153, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 20px rgba(226, 76, 153, 0.15);
+        }
+
+        .crystal-badge {
+            background: rgba(111, 44, 101, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(226, 76, 153, 0.5);
+        }
+
+        /* Sparkling crystal star animation */
+        @keyframes sparkle {
+            0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; filter: drop-shadow(0 0 2px #E24C99); }
+            50% { transform: scale(1.3) rotate(180deg); opacity: 1; filter: drop-shadow(0 0 10px #ffffff); }
+        }
+
+        .crystal-sparkle {
+            animation: sparkle 3s ease-in-out infinite;
+        }
+
+        .crystal-sparkle-delayed {
+            animation: sparkle 4s ease-in-out infinite 1.5s;
+        }
+
+        /* Floating crystal shimmer gradient overlay */
+        .shimmer-text {
+            background: linear-gradient(90deg, #fdf2f8 0%, #E24C99 50%, #ffffff 100%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shine 4s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #470E3D;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #E24C99;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="relative flex flex-col items-center justify-start min-h-screen p-4 sm:p-8">
+
+    <!-- Decorative floating crystal background icons -->
+    <div aria-hidden="true" class="absolute top-10 left-6 text-pink-300 text-3xl opacity-40 crystal-sparkle pointer-events-none">
+        <i class="fa-solid fa-gem"></i>
+    </div>
+    <div aria-hidden="true" class="absolute top-32 right-10 text-pink-400 text-4xl opacity-50 crystal-sparkle-delayed pointer-events-none">
+        <i class="fa-solid fa-sparkles"></i>
+    </div>
+    <div aria-hidden="true" class="absolute bottom-20 left-12 text-pink-300 text-2xl opacity-40 crystal-sparkle-delayed pointer-events-none">
+        <i class="fa-solid fa-gem"></i>
+    </div>
+    <div aria-hidden="true" class="absolute bottom-32 right-16 text-pink-400 text-3xl opacity-40 crystal-sparkle pointer-events-none">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+    </div>
+
+    <!-- Main Wrapper -->
+    <main class="w-full max-w-3xl mx-auto z-10 flex flex-col gap-8 my-4">
+
+        <!-- Header / Greeting Card -->
+        <header class="crystal-card rounded-3xl p-6 sm:p-10 text-center relative overflow-hidden transition-all duration-300">
+            <!-- Top corner crystal accents -->
+            <div class="absolute top-4 left-4 text-pink-400 text-xl"><i class="fa-solid fa-gem"></i></div>
+            <div class="absolute top-4 right-4 text-pink-400 text-xl"><i class="fa-solid fa-gem"></i></div>
+
+            <!-- Personalized Greeting Banner -->
+            <div id="greeting-container" class="mb-4">
+                <span id="guest-greeting" class="inline-block px-5 py-2 rounded-full crystal-badge text-pink-200 font-semibold text-lg sm:text-xl tracking-wide shadow-inner border border-pink-500/30">
+                    You’re invited!
+                </span>
+            </div>
+
+            <!-- Birthday Title -->
+            <h1 class="font-fancy text-4xl sm:text-6xl font-bold tracking-tight mb-2 shimmer-text">
+                Elinor’s 1st Birthday
+            </h1>
+            <p class="text-pink-200/80 text-sm sm:text-base uppercase tracking-widest font-semibold mb-6">
+                A Purr-fect Royal Celebration
+            </p>
+
+            <!-- Kitten Photo Showcase -->
+            <div class="relative w-40 h-40 sm:w-48 sm:h-48 mx-auto mb-6 group">
+                <div class="absolute -inset-1.5 bg-gradient-to-r from-pink-500 via-purple-400 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                <div class="relative w-full h-full rounded-full overflow-hidden border-4 border-pink-300 shadow-2xl bg-elinorPlum flex items-center justify-center">
+                    <img src="https://placehold.co/400x400/6f2c65/fdf2f8?text=Elinor+%F0%9F%90%B1" 
+                         alt="Elinor the birthday kitten wearing a tiny crown" 
+                         onerror="this.src='https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=400&q=80'"
+                         class="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-105">
+                </div>
+                <div class="absolute bottom-1 right-2 bg-pink-600 text-white p-2 rounded-full shadow-lg border-2 border-white text-xs">
+                    <i class="fa-solid fa-crown text-amber-300"></i>
+                </div>
+            </div>
+
+            <p class="font-fancy italic text-pink-100 text-lg sm:text-xl max-w-lg mx-auto">
+                "Our precious little princess is turning one! Join us for an afternoon of feline festivities, crystal sparkle, and celebration."
+            </p>
+        </header>
+
+        <!-- Date & Time Crystal Banner (Big & Clear) -->
+        <section aria-labelledby="event-details-heading" class="crystal-card rounded-3xl p-6 sm:p-8 text-center shadow-xl">
+            <h2 id="event-details-heading" class="sr-only">Event Date and Location Details</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                <!-- Date Box -->
+                <div class="bg-elinorPlum/50 rounded-2xl p-5 border border-pink-500/30 flex flex-col items-center justify-center">
+                    <div class="text-pink-300 text-3xl mb-2">
+                        <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <span class="text-xs uppercase tracking-widest text-pink-300 font-semibold mb-1">Date</span>
+                    <span class="font-fancy text-3xl sm:text-4xl font-bold text-white tracking-wide">
+                        May 29th, 2027
+                    </span>
+                    <span class="text-xs text-pink-200/70 mt-1">Saturday</span>
+                </div>
+
+                <!-- Time Box -->
+                <div class="bg-elinorPlum/50 rounded-2xl p-5 border border-pink-500/30 flex flex-col items-center justify-center">
+                    <div class="text-pink-300 text-3xl mb-2">
+                        <i class="fa-solid fa-clock"></i>
+                    </div>
+                    <span class="text-xs uppercase tracking-widest text-pink-300 font-semibold mb-1">Time</span>
+                    <span class="font-fancy text-3xl sm:text-4xl font-bold text-white tracking-wide">
+                        2:00 PM
+                    </span>
+                    <span class="text-xs text-pink-200/70 mt-1">Prompt arrival for catnip toast!</span>
+                </div>
+            </div>
+
+            <!-- Location & Calendar Action -->
+            <div class="mt-6 pt-6 border-t border-pink-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 text-left">
+                    <div class="bg-pink-600/40 p-3 rounded-xl text-pink-300 text-xl border border-pink-500/40">
+                        <i class="fa-solid fa-house-chimney-heart"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-lg">Elinor’s House</h3>
+                        <p class="text-pink-200/80 text-sm">123 Pawsome Palace Way, Kittyville</p>
+                    </div>
+                </div>
+
+                <button id="add-to-calendar-btn" class="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg transition transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-pink-400 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-calendar-plus"></i> Add to Calendar
+                </button>
+            </div>
+        </section>
+
+        <!-- RSVP Section -->
+        <section aria-labelledby="rsvp-heading" class="crystal-card rounded-3xl p-6 sm:p-8">
+            <div class="text-center mb-6">
+                <div class="text-pink-400 text-2xl mb-1"><i class="fa-solid fa-envelope-open-text"></i></div>
+                <h2 id="rsvp-heading" class="font-fancy text-2xl sm:text-3xl font-bold text-white">RSVP to the Party</h2>
+                <p class="text-pink-200/80 text-sm mt-1">Let us know if you can celebrate with Elinor!</p>
+            </div>
+
+            <!-- RSVP Form -->
+            <form id="rsvp-form" class="space-y-4 max-w-md mx-auto">
+                <div>
+                    <label for="rsvp-name" class="block text-sm font-semibold text-pink-200 mb-1">Your Name / Guest Name</label>
+                    <input type="text" id="rsvp-name" required placeholder="e.g. Aunt Sarah" 
+                           class="w-full px-4 py-3 rounded-xl bg-elinorDark/80 border border-pink-500/40 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-400">
+                </div>
+
+                <div>
+                    <label for="rsvp-status" class="block text-sm font-semibold text-pink-200 mb-1">Will you attend?</label>
+                    <select id="rsvp-status" class="w-full px-4 py-3 rounded-xl bg-elinorDark/80 border border-pink-500/40 text-white focus:outline-none focus:ring-2 focus:ring-pink-400">
+                        <option value="yes">Yes, I wouldn't miss it for the world! 🐾</option>
+                        <option value="no">Sadly, sending purrs from afar 😿</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="rsvp-guests" class="block text-sm font-semibold text-pink-200 mb-1">Number of Attending Guests (Humans or Cats)</label>
+                    <input type="number" id="rsvp-guests" min="1" max="10" value="1" 
+                           class="w-full px-4 py-3 rounded-xl bg-elinorDark/80 border border-pink-500/40 text-white focus:outline-none focus:ring-2 focus:ring-pink-400">
+                </div>
+
+                <div>
+                    <label for="rsvp-message" class="block text-sm font-semibold text-pink-200 mb-1">Birthday Wishes for Elinor (Optional)</label>
+                    <textarea id="rsvp-message" rows="2" placeholder="Write a sweet birthday note..." 
+                              class="w-full px-4 py-3 rounded-xl bg-elinorDark/80 border border-pink-500/40 text-white placeholder-pink-300/50 focus:outline-none focus:ring-2 focus:ring-pink-400"></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-pink-500 via-pink-600 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg transition transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-pink-400 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> Send RSVP Response
+                </button>
+            </form>
+
+            <!-- Success RSVP Confirmation Message Box (Hidden by default) -->
+            <div id="rsvp-success" class="hidden mt-6 p-6 bg-pink-900/60 border border-pink-400 rounded-2xl text-center animate-fade-in">
+                <div class="text-amber-300 text-4xl mb-2"><i class="fa-solid fa-face-laugh-beam"></i></div>
+                <h3 class="font-fancy text-xl font-bold text-white mb-1">RSVP Recorded Successfully!</h3>
+                <p id="rsvp-success-text" class="text-pink-200 text-sm mb-4">Thank you! Your response has been saved locally.</p>
+                <button id="reset-rsvp-btn" class="text-xs underline text-pink-300 hover:text-white">Edit your RSVP</button>
+            </div>
+        </section>
+
+        <!-- Gift Registry & Wishlist Section -->
+        <section aria-labelledby="wishlist-heading" class="crystal-card rounded-3xl p-6 sm:p-8">
+            <div class="text-center mb-6">
+                <div class="text-pink-400 text-2xl mb-1"><i class="fa-solid fa-gift"></i></div>
+                <h2 id="wishlist-heading" class="font-fancy text-2xl sm:text-3xl font-bold text-white">Elinor’s Birthday Wishlist</h2>
+                <p class="text-pink-200/80 text-sm mt-1">If you'd like to bring a small token of affection for the birthday kitten:</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- Wishlist Item 1 -->
+                <div class="bg-elinorPlum/40 border border-pink-500/30 rounded-2xl p-4 flex flex-col items-center text-center">
+                    <div class="w-12 h-12 rounded-full bg-pink-600/40 flex items-center justify-center text-pink-300 text-xl mb-3 border border-pink-500/30">
+                        <i class="fa-solid fa-fish"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">Fancy Canned Salmon</h3>
+                    <p class="text-xs text-pink-200/70">Elinor's absolute favorite gourmet delicacy for party snacks.</p>
+                </div>
+
+                <!-- Wishlist Item 2 -->
+                <div class="bg-elinorPlum/40 border border-pink-500/30 rounded-2xl p-4 flex flex-col items-center text-center">
+                    <div class="w-12 h-12 rounded-full bg-pink-600/40 flex items-center justify-center text-pink-300 text-xl mb-3 border border-pink-500/30">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">Feathered Wands</h3>
+                    <p class="text-xs text-pink-200/70">Sparkly feather toys for high-speed chasing around the living room.</p>
+                </div>
+
+                <!-- Wishlist Item 3 -->
+                <div class="bg-elinorPlum/40 border border-pink-500/30 rounded-2xl p-4 flex flex-col items-center text-center">
+                    <div class="w-12 h-12 rounded-full bg-pink-600/40 flex items-center justify-center text-pink-300 text-xl mb-3 border border-pink-500/30">
+                        <i class="fa-solid fa-yarn"></i>
+                    </div>
+                    <h3 class="font-bold text-white mb-1">Pink Cat Yarn</h3>
+                    <p class="text-xs text-pink-200/70">Soft pastel pink yarn balls for cozy afternoon naps.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center py-6 text-pink-300/70 text-xs sm:text-sm">
+            <p>Made with 💖 for Elinor’s 1st Birthday &bull; May 29, 2027</p>
+            <p class="mt-1">Color Palette: #E24C99 &bull; #6f2c65 &bull; #470E3D</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // v1.0 - Interactive Logic & State Management for Elinor's Birthday Invitation
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- 1. PARSE URL QUERY PARAMETER ?to=Name ---
+            // Helper function to extract query parameter value by name
+            function getQueryParam(param) {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(param);
+            }
+
+            const guestName = getQueryParam('to');
+            const guestGreetingElement = document.getElementById('guest-greeting');
+
+            if (guestName && guestName.trim() !== '') {
+                // Decode URI component just in case and sanitize slightly
+                const sanitizedName = guestName.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                guestGreetingElement.textContent = `${sanitizedName}, you’re invited!`;
+                
+                // Set page title to include guest name if provided
+                document.title = `${sanitizedName}, You're Invited to Elinor's 1st Birthday!`;
+            } else {
+                guestGreetingElement.textContent = "You’re invited!";
+            }
+
+
+            // --- 2. LOCAL STORAGE RSVP FORM HANDLING ---
+            const rsvpForm = document.getElementById('rsvp-form');
+            const rsvpSuccessBox = document.getElementById('rsvp-success');
+            const rsvpSuccessText = document.getElementById('rsvp-success-text');
+            const resetRsvpBtn = document.getElementById('reset-rsvp-btn');
+
+            // Check if RSVP was previously saved in localStorage
+            const savedRsvp = localStorage.getItem('elinor_birthday_rsvp');
+            if (savedRsvp) {
+                try {
+                    const rsvpData = JSON.parse(savedRsvp);
+                    showRsvpSuccess(rsvpData);
+                } catch (e) {
+                    console.error("Error parsing saved RSVP", e);
+                }
+            }
+
+            // Handle form submission
+            rsvpForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const name = document.getElementById('rsvp-name').value.trim();
+                const status = document.getElementById('rsvp-status').value;
+                const guests = document.getElementById('rsvp-guests').value;
+                const message = document.getElementById('rsvp-message').value.trim();
+
+                const rsvpData = { name, status, guests, message, timestamp: new Date().toISOString() };
+                
+                // Save locally
+                localStorage.setItem('elinor_birthday_rsvp', JSON.stringify(rsvpData));
+
+                // Trigger celebration crystal glitter burst / confetti
+                triggerCrystalConfetti();
+
+                // Show success UI
+                showRsvpSuccess(rsvpData);
+            });
+
+            // Display success message and hide form
+            function showRsvpSuccess(data) {
+                rsvpForm.classList.add('hidden');
+                rsvpSuccessBox.classList.remove('hidden');
+                
+                const attendanceText = data.status === 'yes' ? 'attending with ' + data.guests + ' guest(s)' : 'sending regrets';
+                rsvpSuccessText.innerHTML = `Thank you, <strong class="text-white">${data.name}</strong>! Your RSVP (${attendanceText}) has been saved locally in your browser.`;
+            }
+
+            // Allow resetting RSVP to edit
+            resetRsvpBtn.addEventListener('click', () => {
+                localStorage.removeItem('elinor_birthday_rsvp');
+                rsvpSuccessBox.classList.add('hidden');
+                rsvpForm.classList.remove('hidden');
+            });
+
+
+            // --- 3. CRYSTAL GLITTER CONFETTI EFFECT ---
+            function triggerCrystalConfetti() {
+                if (typeof confetti === 'function') {
+                    // Launch custom pink/purple crystal confetti burst
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 },
+                        colors: ['#E24C99', '#6f2c65', '#ffffff', '#ff99c8']
+                    });
+                }
+            }
+
+
+            // --- 4. ADD TO CALENDAR / ICS REMINDER GENERATOR ---
+            const calendarBtn = document.getElementById('add-to-calendar-btn');
+            
+            calendarBtn.addEventListener('click', () => {
+                // Event details
+                const title = "Elinor’s 1st Birthday Party";
+                const description = "Join us for Elinor the kitten's 1st birthday party! Located at Elinor’s house.";
+                const location = "123 Pawsome Palace Way, Kittyville";
+                // May 29, 2027 at 14:00 (2:00 PM)
+                const startTime = "20270529T140000";
+                const endTime = "20270529T170000"; // 3 hours duration
+
+                // Create ICS file content
+                const icsContent = [
+                    "BEGIN:VCALENDAR",
+                    "VERSION:2.0",
+                    "BEGIN:VEVENT",
+                    `SUMMARY:${title}`,
+                    `DESCRIPTION:${description}`,
+                    `LOCATION:${location}`,
+                    `DTSTART:${startTime}`,
+                    `DTEND:${endTime}`,
+                    "END:VEVENT",
+                    "END:VCALENDAR"
+                ].join("\n");
+
+                // Create blob and trigger download
+                const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'elinors_1st_birthday.ics');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+
+        });
+    </script>
+</body>
+</html>
