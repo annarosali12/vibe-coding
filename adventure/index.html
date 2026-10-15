@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 
+      v1.0 - Initial build of the Choose-Your-Own-Adventure Visual Novel Web Application.
+      Aesthetic: A dreamy, pastel-toned visual novel aesthetic with soft rounded dialogue boxes, 
+      ethereal gradients, atmospheric scene styling, and crisp responsive typography evoking a whimsical surreal dreamscape.
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surreal Dreamscape - Visual Novel Adventure</title>
+    <!-- Load Tailwind CSS via CDN for rapid, modern responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter for clean UI & Playfair Display for magical story headers -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .story-title {
+            font-family: 'Playfair Display', serif;
+        }
+        /* Custom smooth transition for narrative card switches */
+        .fade-in {
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar for immersive dialogue area */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-purple-500 selection:text-white">
+
+    <!-- HEADER / NAVIGATION BAR -->
+    <header class="w-full max-w-5xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between border-b border-white/10 gap-2">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+            </div>
+            <h1 class="story-title text-xl sm:text-2xl font-bold tracking-wide bg-gradient-to-r from-purple-200 via-pink-200 to-white bg-clip-text text-transparent">
+                Surreal Dreamscape
+            </h1>
+        </div>
+        <div class="flex items-center space-x-3 text-xs sm:text-sm text-purple-200/70">
+            <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm">Visual Novel Engine</span>
+            <button id="restart-hub-btn" onclick="returnToHub()" class="hidden px-3 py-1 rounded-full bg-purple-600/30 hover:bg-purple-600/50 border border-purple-400/30 text-purple-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400">
+                Story Hub
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main class="w-full max-w-4xl mx-auto px-4 py-6 sm:py-10 flex-grow flex flex-col justify-center items-center">
+        
+        <!-- AESTHETIC DESCRIPTION NOTICE -->
+        <div class="w-full mb-4 text-center">
+            <p class="text-xs italic text-purple-300/60 font-light">
+                A dreamy, pastel-toned visual novel aesthetic with soft rounded dialogue boxes, ethereal gradient backgrounds, and crisp typography that evokes a whimsical, surreal dreamscape.
+            </p>
+        </div>
+
+        <!-- VISUAL NOVEL STAGE / CARD -->
+        <div id="game-stage" class="w-full bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 relative">
+            
+            <!-- SCENE VISUAL BANNER / AMBIENT GLOW -->
+            <div id="scene-banner" class="w-full h-48 sm:h-64 relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 flex items-center justify-center p-6 text-center">
+                <div class="absolute inset-0 bg-black/20"></div>
+                <!-- Decorative background elements -->
+                <div class="absolute -top-12 -left-12 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-12 -right-12 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="relative z-10 max-w-lg">
+                    <span id="scene-tag" class="inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300">
+                        Chapter Select
+                    </span>
+                    <h2 id="scene-title" class="story-title text-2xl sm:text-3xl font-bold text-white drop-shadow-md">
+                        Choose Your Dream Path
+                    </h2>
+                </div>
+            </div>
+
+            <!-- DIALOGUE / NARRATIVE BOX -->
+            <div class="p-6 sm:p-8 flex flex-col space-y-6 bg-slate-900/90">
+                <div class="min-h-[100px] sm:min-h-[120px] flex items-center">
+                    <p id="scene-text" class="text-slate-200 text-base sm:text-lg leading-relaxed font-normal">
+                        Welcome to the realm of surreal doors and vivid subconscious wanderings. Select a starting doorway or dream state below to begin your journey.
+                    </p>
+                </div>
+
+                <!-- CHOICE BUTTONS CONTAINER -->
+                <div id="choices-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <!-- Populated dynamically via JavaScript -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="w-full max-w-5xl mx-auto px-4 py-4 text-center text-xs text-slate-400 border-t border-white/5">
+        <p>&copy; 2026 Surreal Dreamscape Visual Novel. Built with vanilla JavaScript & Tailwind CSS.</p>
+    </footer>
+
+    <!-- JAVASCRIPT: STORY CONFIGURATION AND ENGINE -->
+    <script>
+        // =========================================================================
+        // STORY CONFIGURATION DATA STRUCTURE
+        // Contains every scene, text, choices, and branching paths in a single object.
+        // Easily modifiable without altering core game engine logic.
+        // =========================================================================
+        const STORY_DATA = {
+            // --- HUB / START SCREEN ---
+            "hub": {
+                tag: "Dream Gateway",
+                title: "Choose Your Entrance",
+                text: "You stand before the threshold of consciousness. Five mysterious pathways beckon you into the unknown. Which dream will you step into?",
+                bgGradient: "from-indigo-900 via-purple-950 to-slate-900",
+                choices: [
+                    { text: "🚪 Walk down the hallway of identical beige doors", next: "hallway_start" },
+                    { text: "🌊 Open a beige door and fall into a pool of water", next: "pool_start" },
+                    { text: "🪞 Look into a magical mirror leading to a castle", next: "castle_start" },
+                    { text: "🎂 Check your mail and eat a mysterious delivered cake", next: "cake_start" },
+                    { text: "💤 Fall asleep and dream of your best friend's lottery win", next: "lottery_start" }
+                ]
+            },
+
+            // =========================================================================
+            // BRANCH 1: HALLWAY & WIZARD
+            // =========================================================================
+            "hallway_start": {
+                tag: "The Hallway",
+                title: "Endless Beige Doors",
+                text: "You walk down a hallway full of identical beige doors. You open one door and see tall mountains, pastel clouds, and bouncy mint green grass.",
+                bgGradient: "from-emerald-950 via-teal-900 to-slate-900",
+                choices: [
+                    { text: "Run away from the wizard you meet, acting rude and afraid", next: "wizard_afraid" },
+                    { text: "Talk to the wizard, being friendly and polite", next: "wizard_polite" },
+                    { text: "Return to Dream Gateway", next: "hub" }
+                ]
+            },
+            "wizard_afraid": {
+                tag: "Encounter with the Wizard",
+                title: "Afraid & Rude",
+                text: "You meet a wizard. You are afraid of him and very rude, then you run away. In retaliation, the wizard casts a spell that sends you bouncing higher and higher on the weird, springy grass, up over the mountains and out into the darkness of space.",
+                bgGradient: "from-slate-950 via-indigo-950 to-purple-950",
+                isEnding: true,
+                endingType: "bad",
+                choices: [
+                    { text: "Play Again (Restart Hallway)", next: "hallway_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+            "wizard_polite": {
+                tag: "Encounter with the Wizard",
+                title: "Polite & Gifted",
+                text: "You meet a wizard. You talk to him and are friendly and polite. Impressed by your gracious manners, he gifts you the magical ability to fly anywhere you desire.",
+                bgGradient: "from-amber-950 via-yellow-950 to-slate-900",
+                isEnding: true,
+                endingType: "good",
+                choices: [
+                    { text: "Play Again (Restart Hallway)", next: "hallway_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+
+            // =========================================================================
+            // BRANCH 2: POOL OF WATER & BIRDS
+            // =========================================================================
+            "pool_start": {
+                tag: "The Water Sanctuary",
+                title: "The Talking Birds",
+                text: "You open a beige door and fall into a pool of water. Birds sit in the vines above you. You listen to them and can understand their conversation! This is the weirdest experience of your life. You call out to the birds. They freeze, surprised at hearing a person address them.",
+                bgGradient: "from-cyan-950 via-blue-950 to-slate-900",
+                choices: [
+                    { text: "Dive under water as they start pelting you with seeds and leaves (Splash)", next: "pool_splash" },
+                    { text: "Stay and chat with the birds as they settle near you (Feathers)", next: "pool_feathers" },
+                    { text: "Return to Dream Gateway", next: "hub" }
+                ]
+            },
+            "pool_splash": {
+                tag: "Underwater Escape",
+                title: "The Flying Seeds",
+                text: "They start picking seeds and leaves off the tree and pelting you with them! You dive under the water to get away from the flying seeds. They are sharp! Ouch! You swim around in the murky water, wondering how you are going to get out of this. Just when you think you can’t hold your breath for another second, you wake up. This was the strangest dream!",
+                bgGradient: "from-blue-950 via-teal-950 to-slate-900",
+                isEnding: true,
+                endingType: "good",
+                choices: [
+                    { text: "Play Again (Restart Pool)", next: "pool_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+            "pool_feathers": {
+                tag: "Feathered Transformation",
+                title: "A Growing Change",
+                text: "Birds fly down from the trees and settle on a branch near you. They start chatting with you. The birds tell you to sit down on a branch. You scratch an itch on your arm. You look down at it and see it is starting to sprout feathers. You gasp in disbelief when you see that the rest of your body is covered in soft, downy feathers.",
+                bgGradient: "from-teal-950 via-emerald-950 to-slate-900",
+                isEnding: true,
+                endingType: "bad",
+                choices: [
+                    { text: "Play Again (Restart Pool)", next: "pool_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+
+            // =========================================================================
+            // BRANCH 3: MIRROR & CASTLE
+            // =========================================================================
+            "castle_start": {
+                tag: "The Mirror Portal",
+                title: "The Cobblestone Path",
+                text: "You look into a mirror and see a castle on the other side. As you look, the image in the mirror starts to look fuzzy. You find yourself standing on the other side of the mirror with the room behind you. A cobblestone path leads to a castle. You walk towards the castle. The doors open and you walk in. Cheering crowds of people meet you.",
+                bgGradient: "from-purple-950 via-violet-950 to-slate-900",
+                choices: [
+                    { text: "Accept the golden key and seat at the head table (Keys)", next: "castle_keys" },
+                    { text: "Get led down a dark damp hallway into a jail cell (Jail)", next: "castle_jail" },
+                    { text: "Return to Dream Gateway", next: "hub" }
+                ]
+            },
+            "castle_keys": {
+                tag: "Royal Inheritance",
+                title: "The Golden Key",
+                text: "You are handed a golden key and led to the head of a long table full of food. You have inherited the castle and everything in it is yours.",
+                bgGradient: "from-amber-950 via-yellow-900 to-slate-900",
+                isEnding: true,
+                endingType: "good",
+                choices: [
+                    { text: "Play Again (Restart Castle)", next: "castle_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+            "castle_jail": {
+                tag: "Dungeon Cell",
+                title: "Locked Away",
+                text: "You are led down a dark hallway. The stone walls in this part of the castle are damp. It smells like dirt. They lead you into a cell and lock the door behind you.",
+                bgGradient: "from-stone-950 via-zinc-950 to-slate-900",
+                isEnding: true,
+                endingType: "bad",
+                choices: [
+                    { text: "Play Again (Restart Castle)", next: "castle_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+
+            // =========================================================================
+            // BRANCH 4: CAKE & PICTURES
+            // =========================================================================
+            "cake_start": {
+                tag: "The Mystery Delivery",
+                title: "The Delicious Cake",
+                text: "You check your mail and find someone has sent you a cake. You eat the cake. It’s delicious, but you don’t feel any different, at least not at first.",
+                bgGradient: "from-pink-950 via-rose-950 to-slate-900",
+                choices: [
+                    { text: "Look at your old vacation photo of Sweden and let memory pull you in (Travel)", next: "cake_travel" },
+                    { text: "Keep looking at pictures around the house, risking getting pulled in everywhere (Skip)", next: "cake_skip" },
+                    { text: "Return to Dream Gateway", next: "hub" }
+                ]
+            },
+            "cake_travel": {
+                tag: "Oceanic Transport",
+                title: "The Swedish Dock",
+                text: "You look at a picture on the wall. It’s a photo you took when you were on vacation in Sweden. It reminds you how much you loved being there. You can almost smell the sea air and hear the waves. The memory is so clear, it’s like if you opened your eyes, you would be there. You close your eyes and breathe out, slowly. You hear…seagulls? You open your eyes and you’re standing on the dock by the ocean. How did you get here? You are confused and overjoyed. This is a gift you will use well.",
+                bgGradient: "from-cyan-950 via-sky-950 to-slate-900",
+                isEnding: true,
+                endingType: "good",
+                choices: [
+                    { text: "Play Again (Restart Cake)", next: "cake_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+            "cake_skip": {
+                tag: "Trapped in Paintings",
+                title: "The Museum Phobia",
+                text: "Every time you look at a picture, you find yourself getting pulled into it. It happens so often that you don’t dare look at paintings or pictures on the walls, let alone go in to any museums.",
+                bgGradient: "from-red-950 via-slate-950 to-slate-900",
+                isEnding: true,
+                endingType: "bad",
+                choices: [
+                    { text: "Play Again (Restart Cake)", next: "cake_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+
+            // =========================================================================
+            // BRANCH 5: LOTTERY DREAM & FRIEND
+            // =========================================================================
+            "lottery_start": {
+                tag: "The Prophetic Sleep",
+                title: "The Winning Ticket",
+                text: "You fall asleep and dream that your best friend buys a winning lottery ticket. They win the biggest jackpot in history and share half of it with you!",
+                bgGradient: "from-violet-950 via-fuchsia-950 to-slate-900",
+                choices: [
+                    { text: "Achieve your dream job of living on an island and clicker training animals (Island)", next: "lottery_island" },
+                    { text: "Build a magnificent mansion that turns out to be gossip-loving ghost territory (Mansion)", next: "lottery_mansion" },
+                    { text: "Return to Dream Gateway", next: "hub" }
+                ]
+            },
+            "lottery_island": {
+                tag: "Tropical Paradise",
+                title: "The Animal Trainer",
+                text: "You achieve your dream job of living on an island and clicker training all the animals there.",
+                bgGradient: "from-emerald-950 via-green-950 to-slate-900",
+                isEnding: true,
+                endingType: "good",
+                choices: [
+                    { text: "Play Again (Restart Lottery)", next: "lottery_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            },
+            "lottery_mansion": {
+                tag: "Haunted Luxury",
+                title: "Nosy Spirits",
+                text: "You take your share of the money and build a mansion for yourself. It’s beautiful and perfect. You also discover that it is haunted by a troupe of ghosts that are friendly, but excessively nosy. You live in a glorious mansion with ghosts that gossip about everything you do.",
+                bgGradient: "from-purple-950 via-slate-950 to-indigo-950",
+                isEnding: true,
+                endingType: "bad",
+                choices: [
+                    { text: "Play Again (Restart Lottery)", next: "lottery_start" },
+                    { text: "Return to Story Hub", next: "hub" }
+                ]
+            }
+        };
+
+        // =========================================================================
+        // GAME STATE & ENGINE LOGIC
+        // =========================================================================
+        let currentSceneKey = "hub";
+
+        /**
+         * Renders the current scene based on the provided story key.
+         * Updates UI elements with smooth transitions and accessibility attributes.
+         * @param {string} sceneKey - The key corresponding to STORY_DATA
+         */
+        function loadScene(sceneKey) {
+            if (!STORY_DATA[sceneKey]) {
+                console.error("Scene not found:", sceneKey);
+                sceneKey = "hub";
+            }
+            currentSceneKey = sceneKey;
+            const scene = STORY_DATA[sceneKey];
+
+            // Grab DOM elements
+            const stage = document.getElementById("game-stage");
+            const sceneBanner = document.getElementById("scene-banner");
+            const sceneTag = document.getElementById("scene-tag");
+            const sceneTitle = document.getElementById("scene-title");
+            const sceneText = document.getElementById("scene-text");
+            const choicesContainer = document.getElementById("choices-container");
+            const restartHubBtn = document.getElementById("restart-hub-btn");
+
+            // Trigger fade-in animation reset
+            stage.classList.remove("fade-in");
+            void stage.offsetWidth; // Trigger reflow
+            stage.classList.add("fade-in");
+
+            // Toggle Hub return button visibility in header
+            if (sceneKey === "hub") {
+                restartHubBtn.classList.add("hidden");
+            } else {
+                restartHubBtn.classList.remove("hidden");
+            }
+
+            // Update scene banner background gradient
+            sceneBanner.className = `w-full h-48 sm:h-64 relative overflow-hidden bg-gradient-to-br ${scene.bgGradient} flex items-center justify-center p-6 text-center transition-all duration-500`;
+
+            // Update scene tag & title
+            sceneTag.textContent = scene.tag || "Dream Sequence";
+            if (scene.isEnding) {
+                if (scene.endingType === "good") {
+                    sceneTag.textContent = "✨ GOOD ENDING ✨";
+                    sceneTag.className = "inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300";
+                } else {
+                    sceneTag.textContent = "🌙 BAD ENDING 🌙";
+                    sceneTag.className = "inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-rose-500/20 border border-rose-400/30 text-rose-300";
+                }
+            } else {
+                sceneTag.className = "inline-block px-3 py-1 mb-3 text-xs font-semibold tracking-wider uppercase rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-300";
+            }
+            sceneTitle.textContent = scene.title;
+
+            // Update narrative text
+            sceneText.textContent = scene.text;
+
+            // Clear previous choice buttons
+            choicesContainer.innerHTML = "";
+
+            // Populate choices or ending buttons
+            if (scene.choices && scene.choices.length > 0) {
+                scene.choices.forEach((choice, index) => {
+                    const button = document.createElement("button");
+                    
+                    // Style differently if it's a Play Again / Ending button vs standard choice
+                    const isEndingBtn = scene.isEnding;
+                    
+                    button.className = isEndingBtn 
+                        ? "w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium text-sm sm:text-base shadow-lg shadow-purple-600/30 transition-all duration-200 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-purple-400 flex items-center justify-center space-x-2"
+                        : "w-full py-3.5 px-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/40 text-slate-200 font-medium text-sm sm:text-base transition-all duration-200 text-left flex items-center justify-between group focus:outline-none focus:ring-2 focus:ring-purple-400";
+
+                    if (isEndingBtn) {
+                        button.innerHTML = `<span>${choice.text}</span>`;
+                    } else {
+                        button.innerHTML = `<span>${choice.text}</span><span class="text-purple-400 group-hover:translate-x-1 transition-transform duration-200">&rarr;</span>`;
+                    }
+
+                    // ARIA accessibility labeling
+                    button.setAttribute("aria-label", choice.text);
+
+                    // Click handler
+                    button.onclick = () => {
+                        loadScene(choice.next);
+                    };
+
+                    choicesContainer.appendChild(button);
+                });
+            }
+        }
+
+        /**
+         * Returns the player to the main story hub screen.
+         */
+        function returnToHub() {
+            loadScene("hub");
+        }
+
+        // Initialize game on window load
+        window.onload = function() {
+            loadScene("hub");
+        };
+    </script>
+</body>
+</html>
