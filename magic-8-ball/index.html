@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mystic Magic 8-Ball - Dark Water Rise</title>
+    <!-- Tailwind CSS CDN for modern utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for mystic header and body text -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mystic: ['Cinzel', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    animation: {
+                        'shake': 'shake 0.6s cubic-bezier(.36,.07,.19,.97) both',
+                        'float': 'float 4s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        shake: {
+                            '0%, 100%': { transform: 'translateX(0) rotate(0deg)' },
+                            '15%': { transform: 'translateX(-12px) rotate(-6deg)' },
+                            '30%': { transform: 'translateX(10px) rotate(5deg)' },
+                            '45%': { transform: 'translateX(-8px) rotate(-4deg)' },
+                            '60%': { transform: 'translateX(6px) rotate(3deg)' },
+                            '75%': { transform: 'translateX(-4px) rotate(-1deg)' },
+                            '90%': { transform: 'translateX(2px) rotate(1deg)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { boxShadow: '0 0 30px rgba(139, 92, 246, 0.2), inset 0 0 40px rgba(0, 0, 0, 0.9)' },
+                            '50%': { boxShadow: '0 0 50px rgba(168, 85, 247, 0.4), inset 0 0 50px rgba(0, 0, 0, 0.9)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Outer Magic 8-Ball dark sphere texture with specular highlights */
+        .ball-surface {
+            background: radial-gradient(circle at 30% 30%, #2a2a3c 0%, #111118 45%, #050508 100%);
+        }
+        .ball-highlight {
+            background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+        }
+
+        /* Inverted Triangle Die Window (wide base at top, point at bottom for maximum text clearance) */
+        .triangle-window-inverted {
+            clip-path: polygon(5% 15%, 95% 15%, 50% 90%);
+            background: radial-gradient(circle at center, #0b132b 0%, #020617 100%);
+            box-shadow: inset 0 0 25px rgba(14, 165, 233, 0.4);
+        }
+
+        /* 
+         * Keyframe Animation: Dark Water Surface Rise
+         * Simulates a physical dye die floating slowly from deep within dark murky liquid to the glass window surface.
+         */
+        @keyframes floatFromWater {
+            0% {
+                opacity: 0;
+                transform: translateY(28px) scale(0.65);
+                filter: blur(14px);
+                color: #0284c7; /* Dark murky blue depth */
+                letter-spacing: 0.15em;
+            }
+            40% {
+                opacity: 0.4;
+                filter: blur(8px);
+                color: #38bdf8;
+            }
+            75% {
+                opacity: 0.85;
+                filter: blur(2px);
+                transform: translateY(2px) scale(0.97);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+                filter: blur(0px);
+                color: #e0f2fe; /* Bright icy blue when touching the glass surface */
+                letter-spacing: 0.05em;
+            }
+        }
+
+        /* Class applied via JS to initiate the 2.2 second water float animation */
+        .animate-water-rise {
+            animation: floatFromWater 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        /* Subtle glowing wave overlay inside the triangular fluid reservoir */
+        @keyframes liquidGlow {
+            0%, 100% { background-color: rgba(14, 165, 233, 0.05); }
+            50% { background-color: rgba(14, 165, 233, 0.22); }
+        }
+        .animate-liquid-glow {
+            animation: liquidGlow 2.2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased selection:bg-purple-500 selection:text-white flex flex-col justify-between overflow-x-hidden">
+
+    <header class="w-full py-6 px-4 text-center border-b border-slate-900/80 bg-slate-950/60 backdrop-blur-md">
+        <h1 class="font-mystic text-3xl md:text-4xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-sky-400">
+            ORACLE 8-BALL
+        </h1>
+        <p class="text-xs md:text-sm text-slate-400 mt-1 font-medium tracking-wider uppercase">Consult the cosmic consciousness</p>
+    </header>
+
+    <main class="flex-grow flex flex-col items-center justify-center px-4 py-8 max-w-xl mx-auto w-full">
+        
+        <!-- Magic 8-Ball Visual Container -->
+        <div class="relative mb-10 w-full flex justify-center">
+            <!-- Glow ambient background aura -->
+            <div class="absolute w-72 h-72 md:w-80 md:h-80 rounded-full bg-purple-600/10 blur-2xl pointer-events-none"></div>
+
+            <!-- The Main 8-Ball Sphere -->
+            <div id="magic-ball" class="ball-surface relative w-72 h-72 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center animate-float animate-pulse-glow transition-transform duration-300 border border-slate-800">
+                
+                <!-- Specular Highlight overlay for 3D sphere realism -->
+                <div class="ball-highlight absolute top-2 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full pointer-events-none"></div>
+
+                <!-- Default Number 8 Badge (Visible before asking) -->
+                <div id="number-eight" class="absolute w-24 h-24 rounded-full bg-slate-900 border border-slate-700/60 shadow-inner flex items-center justify-center transition-opacity duration-500">
+                    <span class="font-mystic text-6xl font-bold text-slate-200 select-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">8</span>
+                </div>
+
+                <!-- Inner Upside-Down Triangular Fluid Window -->
+                <div id="answer-container" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-700 pointer-events-none">
+                    <div id="fluid-window" class="triangle-window-inverted w-56 h-52 md:w-64 md:h-60 flex items-start justify-center pt-14 px-8 text-center shadow-lg border border-sky-500/30">
+                        <!-- Answer text that slowly floats up from dark water -->
+                        <p id="answer-text" class="font-mystic text-xs md:text-sm font-semibold text-sky-200 tracking-wide uppercase drop-shadow-[0_2px_8px_rgba(14,165,233,0.5)] max-w-[150px] leading-snug">
+                            Ask your question
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <form id="oracle-form" class="w-full space-y-4 bg-slate-900/60 p-5 rounded-2xl border border-slate-800/80 backdrop-blur-xl shadow-xl">
+            <div class="space-y-2">
+                <label for="question-input" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    Your Question <span class="text-slate-500 lowercase font-normal">(Press Enter or click Ask)</span>
+                </label>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="question-input" 
+                        placeholder="Will my wishes come true today?" 
+                        maxlength="120"
+                        autocomplete="off"
+                        aria-label="Type your question for the Magic 8-Ball and press Enter"
+                        class="w-full px-4 py-3.5 bg-slate-950/80 border border-slate-700/60 rounded-xl text-slate-100 placeholder-slate-500 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-inner"
+                    >
+                </div>
+            </div>
+
+            <button 
+                type="submit" 
+                id="ask-button"
+                aria-label="Shake the Magic 8-Ball for an answer"
+                class="w-full py-3.5 px-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-600 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-purple-900/30 transition-all duration-200 flex items-center justify-center space-x-2 font-sans cursor-pointer border border-purple-400/20"
+            >
+                <svg class="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                <span>Ask Question (Enter)</span>
+            </button>
+        </form>
+
+        <!-- Live accessibility announcer for screen readers -->
+        <div id="sr-announcer" class="sr-only" aria-live="polite"></div>
+
+    </main>
+
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-900/80">
+        <p>Mystic 8-Ball • Runs 100% locally in your browser</p>
+    </footer>
+
+    <script>
+        // v1.3 - Added slow dark water floating/fade-in animation when answer reveals
+        // Vanilla JavaScript implementation adhering strictly to all specifications and accessibility standards.
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Define the official 9 answers specified in requirements
+            const answersList = [
+                "Definitely not",
+                "Perhaps",
+                "Most certainly",
+                "Difficult to say",
+                "Excellent plan",
+                "How should I know?",
+                "Consider it done",
+                "No clue",
+                "Absolutely"
+            ];
+
+            // DOM Element References
+            const oracleForm = document.getElementById('oracle-form');
+            const magicBall = document.getElementById('magic-ball');
+            const numberEight = document.getElementById('number-eight');
+            const answerContainer = document.getElementById('answer-container');
+            const fluidWindow = document.getElementById('fluid-window');
+            const answerText = document.getElementById('answer-text');
+            const questionInput = document.getElementById('question-input');
+            const askButton = document.getElementById('ask-button');
+            const srAnnouncer = document.getElementById('sr-announcer');
+
+            // Prevent multiple concurrent animations
+            let isShaking = false;
+
+            /**
+             * Core Function: Executes question processing and triggers the dark water floating reveal
+             */
+            function consultOracle() {
+                if (isShaking) return;
+
+                const question = questionInput.value.trim();
+
+                // Validation: Check if a question was entered
+                if (!question) {
+                    questionInput.focus();
+                    questionInput.classList.add('border-rose-500/80', 'ring-2', 'ring-rose-500/20');
+                    srAnnouncer.textContent = "Please type a question before asking the oracle.";
+                    
+                    setTimeout(() => {
+                        questionInput.classList.remove('border-rose-500/80', 'ring-2', 'ring-rose-500/20');
+                    }, 1500);
+                    return;
+                }
+
+                // Lock interactive UI during response phase
+                isShaking = true;
+                askButton.disabled = true;
+                askButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+                // Step 1: Reset window state and reset answer animation classes
+                answerText.classList.remove('animate-water-rise');
+                fluidWindow.classList.remove('animate-liquid-glow');
+                answerContainer.style.opacity = '0';
+                answerContainer.style.pointerEvents = 'none';
+                numberEight.style.opacity = '1';
+
+                // Step 2: Trigger physical 8-Ball shake animation
+                magicBall.classList.add('animate-shake');
+                srAnnouncer.textContent = "The Magic 8-Ball is shaking as it consults the cosmic realm...";
+
+                // Step 3: Select a random answer from the official list
+                const randomIndex = Math.floor(Math.random() * answersList.length);
+                const selectedAnswer = answersList[randomIndex];
+
+                // Step 4: After shaking completes (600ms), begin the slow dark water floating reveal
+                setTimeout(() => {
+                    magicBall.classList.remove('animate-shake');
+                    
+                    // Hide the number 8 badge
+                    numberEight.style.opacity = '0';
+                    
+                    // Set selected answer text
+                    answerText.textContent = selectedAnswer;
+
+                    // Make the answer window visible
+                    answerContainer.style.opacity = '1';
+
+                    // Force CSS reflow to ensure the animation triggers cleanly every time
+                    void answerText.offsetWidth;
+
+                    // Apply the dark water rising floating keyframe class
+                    answerText.classList.add('animate-water-rise');
+                    fluidWindow.classList.add('animate-liquid-glow');
+
+                    // Announce final answer to screen readers
+                    srAnnouncer.textContent = `The oracle has spoken: ${selectedAnswer}`;
+
+                    // Unlock the UI after the 2.2s dark water rise animation finishes
+                    setTimeout(() => {
+                        isShaking = false;
+                        askButton.disabled = false;
+                        askButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }, 2200);
+
+                }, 600);
+            }
+
+            /**
+             * Event Listener: Handles form submission via Enter key press or submit button
+             */
+            oracleForm.addEventListener('submit', (event) => {
+                event.preventDefault(); // Prevent standard page reload
+                consultOracle();
+            });
+
+            /**
+             * Event Listener: Keydown detection on input field to guarantee Enter key behavior
+             */
+            questionInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    consultOracle();
+                }
+            });
+
+            /**
+             * Optional Click Trigger: Allow shaking by tapping directly on the 8-Ball if a question is typed
+             */
+            magicBall.addEventListener('click', () => {
+                if (questionInput.value.trim() !== '') {
+                    consultOracle();
+                } else {
+                    questionInput.focus();
+                    srAnnouncer.textContent = "Please type a question in the box first.";
+                }
+            });
+        });
+    </script>
+</body>
+</html>
