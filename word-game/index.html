@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensure proper scaling and responsiveness on mobile and desktop devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Guessing Game</title>
+    <!-- Tailwind CSS for modern responsive utility styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Modern Font Family Setup */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none; /* Prevent accidental text selection during fast clicking */
+        }
+
+        /* 3D Flip Animation for Tile Reveal */
+        .tile {
+            perspective: 1000px;
+            transition: transform 0.15s ease-in-out, border-color 0.15s ease-in-out;
+        }
+
+        .tile-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .tile.flip .tile-inner {
+            transform: rotateX(180deg);
+        }
+
+        .tile-front, .tile-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            border-radius: 0.5rem;
+        }
+
+        .tile-back {
+            transform: rotateX(180deg);
+        }
+
+        /* Pop Animation when typing a letter */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: pop 0.1s ease-in-out;
+        }
+
+        /* Shake Animation for Invalid Word or Short Input */
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+        }
+        .animate-shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Bounce Animation for Winning Row */
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        .animate-bounce-win {
+            animation: bounce 0.8s ease;
+        }
+
+        /* Standard High-contrast Tile State Colors */
+        .state-correct { background-color: #22c55e; color: #ffffff; border-color: #22c55e; } /* Green */
+        .state-present { background-color: #eab308; color: #ffffff; border-color: #eab308; } /* Yellow */
+        .state-absent  { background-color: #6b7280; color: #ffffff; border-color: #6b7280; } /* Gray */
+        .state-empty   { background-color: transparent; border-color: #d1d5db; color: #111827; }
+        .state-tapped  { border-color: #3b82f6; } /* Active typing border highlight */
+
+        /* Colorblind Accessibility Theme Override Colors (Blue/Orange/Gray High-Contrast Palette) */
+        body.colorblind-mode .state-correct { background-color: #0284c7; color: #ffffff; border-color: #0284c7; } /* High Contrast Blue */
+        body.colorblind-mode .state-present { background-color: #f97316; color: #ffffff; border-color: #f97316; } /* High Contrast Orange */
+        body.colorblind-mode .state-absent  { background-color: #4b5563; color: #ffffff; border-color: #4b5563; } /* High Contrast Dark Gray */
+
+        /* Dark mode theme adjustments */
+        @media (prefers-color-scheme: dark) {
+            .state-empty { border-color: #4b5563; color: #f9fafb; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-100 min-h-screen flex flex-col justify-between items-center p-2 sm:p-4">
+
+    <!-- Screen Reader Accessible Live Announcer for Feedback Messages -->
+    <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true" role="status"></div>
+
+    <!-- Header Section -->
+    <header class="w-full max-w-lg flex justify-between items-center py-2 mb-2 border-b border-slate-200 dark:border-slate-800">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-wider bg-gradient-to-r from-emerald-500 to-teal-600 bg-clip-text text-transparent">
+            WORDLE CLONE
+        </h1>
+        <div class="flex items-center gap-2">
+            <!-- Colorblind Mode Toggle Button -->
+            <button id="btn-colorblind" title="Toggle Colorblind Symbols & Palette" aria-label="Toggle Colorblind Accessibility Mode" class="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition flex items-center gap-1">
+                <span class="text-base">👁️</span>
+                <span id="colorblind-toggle-label" class="hidden sm:inline">Colorblind</span>
+            </button>
+            <button id="btn-stats" title="View Statistics" aria-label="View Game Statistics" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            </button>
+            <button id="btn-restart-header" title="New Game" aria-label="Start New Game" class="p-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition font-semibold text-sm">
+                New Game
+            </button>
+        </div>
+    </header>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed top-14 z-50 transform -translate-y-12 opacity-0 transition-all duration-300 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 px-4 py-2 rounded-lg shadow-lg font-bold text-sm tracking-wide pointer-events-none">
+        Notification
+    </div>
+
+    <!-- Main Game Board Container -->
+    <main class="flex-grow flex flex-col items-center justify-center w-full max-w-sm sm:max-w-md my-auto">
+        <!-- 6 Rows x 5 Columns Grid -->
+        <div id="board" class="grid grid-rows-6 gap-1.5 sm:gap-2 w-full max-w-[340px] aspect-[5/6] p-1" role="region" aria-label="Word Grid">
+            <!-- Tiles dynamically generated via JS for clean markup -->
+        </div>
+    </main>
+
+    <!-- Virtual On-Screen Keyboard -->
+    <footer class="w-full max-w-md sm:max-w-lg mt-auto pb-2">
+        <div id="keyboard" class="flex flex-col gap-1.5 px-1" role="group" aria-label="On-screen Keyboard">
+            <!-- Row 1 -->
+            <div class="flex justify-center gap-1 sm:gap-1.5 touch-action-manipulation">
+                <button data-key="Q" class="key-btn">Q</button>
+                <button data-key="W" class="key-btn">W</button>
+                <button data-key="E" class="key-btn">E</button>
+                <button data-key="R" class="key-btn">R</button>
+                <button data-key="T" class="key-btn">T</button>
+                <button data-key="Y" class="key-btn">Y</button>
+                <button data-key="U" class="key-btn">U</button>
+                <button data-key="I" class="key-btn">I</button>
+                <button data-key="O" class="key-btn">O</button>
+                <button data-key="P" class="key-btn">P</button>
+            </div>
+            <!-- Row 2 -->
+            <div class="flex justify-center gap-1 sm:gap-1.5">
+                <div class="w-[4%]"></div> <!-- Spacer for key alignment -->
+                <button data-key="A" class="key-btn">A</button>
+                <button data-key="S" class="key-btn">S</button>
+                <button data-key="D" class="key-btn">D</button>
+                <button data-key="F" class="key-btn">F</button>
+                <button data-key="G" class="key-btn">G</button>
+                <button data-key="H" class="key-btn">H</button>
+                <button data-key="J" class="key-btn">J</button>
+                <button data-key="K" class="key-btn">K</button>
+                <button data-key="L" class="key-btn">L</button>
+                <div class="w-[4%]"></div>
+            </div>
+            <!-- Row 3 -->
+            <div class="flex justify-center gap-1 sm:gap-1.5">
+                <button data-key="ENTER" class="key-btn min-w-[3rem] sm:min-w-[4rem] text-xs font-bold bg-slate-300 dark:bg-slate-700">ENTER</button>
+                <button data-key="Z" class="key-btn">Z</button>
+                <button data-key="X" class="key-btn">X</button>
+                <button data-key="C" class="key-btn">C</button>
+                <button data-key="V" class="key-btn">V</button>
+                <button data-key="B" class="key-btn">B</button>
+                <button data-key="N" class="key-btn">N</button>
+                <button data-key="M" class="key-btn">M</button>
+                <button data-key="BACKSPACE" aria-label="Backspace" class="key-btn min-w-[3rem] sm:min-w-[4rem] bg-slate-300 dark:bg-slate-700">
+                    <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414-6.414a2 2 0 011.414-.586H19a2 2 0 012 2v12a2 2 0 01-2 2H10.828a2 2 0 01-1.414-.586L3 12z"></path></svg>
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Result / Game Over Modal -->
+    <div id="game-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" aria-modal="true" role="dialog">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center transform transition-all scale-95 opacity-0 id-modal-content">
+            <h2 id="modal-title" class="text-2xl font-black mb-2">Game Over</h2>
+            <p id="modal-message" class="text-slate-600 dark:text-slate-300 text-sm mb-4">You guessed the word!</p>
+            
+            <div class="bg-slate-100 dark:bg-slate-700/50 rounded-xl p-3 mb-6">
+                <span class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold block mb-1">Target Word</span>
+                <span id="modal-word" class="text-2xl font-extrabold tracking-widest text-emerald-600 dark:text-emerald-400">APPLE</span>
+            </div>
+
+            <button id="btn-modal-restart" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg transition transform active:scale-95">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Game Engine Script -->
+    <script>
+        // v1.2 - Added aria-live screen reader guess result summary announcements
+        // Author: Vanilla JavaScript Game Developer
+        
+        /* ==========================================================================
+           1. EDITABLE WORD BANK & DICTIONARY SETTINGS
+           ========================================================================== */
+        // Edit or add 5-letter target words in uppercase here:
+        const WORD_BANK = [
+            "APPLE", "BEACH", "CHAIR", "DANCE", "EAGLE",
+            "FLAME", "GRAPE", "HOUSE", "IMAGE", "JUICE",
+            "KNIFE", "LEMON", "MUSIC", "NIGHT", "OCEAN",
+            "PIANO", "QUEEN", "RIVER", "SNAKE", "TABLE",
+            "UNCLE", "VOICE", "WATER", "YOUTH", "ZEBRA",
+            "BRAIN", "CLOUD", "DREAM", "EARTH", "FRUIT"
+        ];
+
+        /* ==========================================================================
+           2. GAME CONSTANTS & STATE VARIABLES
+           ========================================================================== */
+        const MAX_ATTEMPTS = 6;
+        const WORD_LENGTH = 5;
+
+        let targetWord = "";
+        let currentAttempt = 0; // 0 to 5
+        let currentLetterPos = 0; // 0 to 4
+        let currentGuess = []; // Stores characters for the current active row
+        let isGameOver = false;
+        let isRevealing = false; // Block user inputs while row flip animation plays
+        let isColorblindMode = false; // Colorblind high contrast state flag
+
+        // Secondary accessibility badge indicators mapping
+        const INDICATORS = {
+            'state-correct': { symbol: '✓', text: 'EXACT' },
+            'state-present': { symbol: '⇄', text: 'SPOT' },
+            'state-absent':  { symbol: '✕', text: 'NO' }
+        };
+
+        // Board data structure: 6 rows x 5 tiles
+        const boardState = Array(MAX_ATTEMPTS).fill(null).map(() => Array(WORD_LENGTH).fill(''));
+
+        /* ==========================================================================
+           3. DOM ELEMENTS
+           ========================================================================== */
+        const boardElement = document.getElementById('board');
+        const keyboardElement = document.getElementById('keyboard');
+        const toastElement = document.getElementById('toast');
+        const modalElement = document.getElementById('game-modal');
+        const modalContentElement = modalElement.querySelector('.id-modal-content');
+        const modalTitleElement = document.getElementById('modal-title');
+        const modalMessageElement = document.getElementById('modal-message');
+        const modalWordElement = document.getElementById('modal-word');
+        const srAnnouncerElement = document.getElementById('sr-announcer');
+
+        /* ==========================================================================
+           4. INITIALIZATION FUNCTIONS
+           ========================================================================== */
+        // Initialize the game board DOM structure and start a new game round
+        function initGame() {
+            // Pick a random word from the editable list
+            targetWord = WORD_BANK[Math.floor(Math.random() * WORD_BANK.length)].toUpperCase();
+            console.log("Target Word Selected:", targetWord); // For debug testing
+
+            // Reset Game Logic Variables
+            currentAttempt = 0;
+            currentLetterPos = 0;
+            currentGuess = [];
+            isGameOver = false;
+            isRevealing = false;
+
+            // Clear Board UI
+            boardElement.innerHTML = '';
+            for (let r = 0; r < MAX_ATTEMPTS; r++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'grid grid-cols-5 gap-1.5 sm:gap-2 w-full';
+                rowDiv.setAttribute('role', 'row');
+                rowDiv.setAttribute('aria-label', `Row ${r + 1}`);
+
+                for (let c = 0; c < WORD_LENGTH; c++) {
+                    const tileDiv = document.createElement('div');
+                    tileDiv.className = 'tile aspect-square w-full';
+                    tileDiv.id = `tile-${r}-${c}`;
+                    
+                    tileDiv.innerHTML = `
+                        <div class="tile-inner">
+                            <div class="tile-front state-empty border-2 text-xl sm:text-2xl font-black uppercase"></div>
+                            <div class="tile-back state-empty border-2 text-xl sm:text-2xl font-black uppercase flex flex-col justify-between p-1 relative">
+                                <span class="tile-indicator-symbol absolute top-0.5 left-1 text-[9px] sm:text-[11px] font-extrabold leading-none opacity-90"></span>
+                                <span class="tile-letter my-auto text-lg sm:text-2xl font-black leading-none"></span>
+                                <span class="tile-indicator-text text-[7px] sm:text-[9px] font-extrabold tracking-tighter uppercase leading-none opacity-90"></span>
+                            </div>
+                        </div>
+                    `;
+                    rowDiv.appendChild(tileDiv);
+                }
+                boardElement.appendChild(rowDiv);
+            }
+
+            // Reset Key Buttons Appearance & Sub-badges
+            const keys = keyboardElement.querySelectorAll('.key-btn');
+            keys.forEach(key => {
+                key.className = key.className.replace(/state-\w+/g, '').trim();
+                const badgeSpan = key.querySelector('.key-badge');
+                if (badgeSpan) badgeSpan.remove();
+
+                // Apply base button styles
+                if (!key.dataset.key.includes('ENTER') && !key.dataset.key.includes('BACKSPACE')) {
+                    key.className = 'key-btn flex-1 py-3 sm:py-4 rounded font-bold text-xs sm:text-sm bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 transition active:scale-95 flex items-center justify-center relative';
+                }
+            });
+
+            // Close Modal if Open
+            hideModal();
+            announceToScreenReader("New game started. Enter a five letter word.");
+        }
+
+        /* ==========================================================================
+           5. INPUT HANDLING LOGIC (Physical & Screen Keyboards)
+           ========================================================================== */
+        // Process user letter input, backspace, and enter key presses
+        function handleKeyPress(key) {
+            if (isGameOver || isRevealing) return;
+
+            const uppercaseKey = key.toUpperCase();
+
+            if (uppercaseKey === 'ENTER') {
+                submitGuess();
+            } else if (uppercaseKey === 'BACKSPACE' || uppercaseKey === 'BACK') {
+                removeLetter();
+            } else if (/^[A-Z]$/.test(uppercaseKey)) {
+                addLetter(uppercaseKey);
+            }
+        }
+
+        // Add character to the active row
+        function addLetter(letter) {
+            if (currentLetterPos < WORD_LENGTH) {
+                currentGuess[currentLetterPos] = letter;
+                
+                // Update UI Front Tile
+                const tile = document.getElementById(`tile-${currentAttempt}-${currentLetterPos}`);
+                const frontTile = tile.querySelector('.tile-front');
+                frontTile.textContent = letter;
+                frontTile.classList.add('state-tapped', 'animate-pop');
+
+                // Remove animation pop class after execution
+                setTimeout(() => frontTile.classList.remove('animate-pop'), 150);
+
+                currentLetterPos++;
+            }
+        }
+
+        // Remove character from the active row
+        function removeLetter() {
+            if (currentLetterPos > 0) {
+                currentLetterPos--;
+                currentGuess.pop();
+
+                const tile = document.getElementById(`tile-${currentAttempt}-${currentLetterPos}`);
+                const frontTile = tile.querySelector('.tile-front');
+                frontTile.textContent = '';
+                frontTile.classList.remove('state-tapped');
+            }
+        }
+
+        /* ==========================================================================
+           6. GUESS VERIFICATION & TILE COLORING ALGORITHM
+           ========================================================================== */
+        // Process and evaluate submitted guess
+        function submitGuess() {
+            if (currentLetterPos < WORD_LENGTH) {
+                showToast("Not enough letters");
+                shakeRow(currentAttempt);
+                return;
+            }
+
+            const guessWord = currentGuess.join('');
+
+            // Flag as revealing state to disable input during flip animation
+            isRevealing = true;
+
+            // Algorithm handling duplicate letters correctly:
+            // Step 1: Count target word character frequencies
+            const targetLetterCounts = {};
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                const char = targetWord[i];
+                targetLetterCounts[char] = (targetLetterCounts[char] || 0) + 1;
+            }
+
+            const tileStates = Array(WORD_LENGTH).fill('state-absent');
+
+            // Step 2: First pass for EXACT/GREEN matches
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                if (guessWord[i] === targetWord[i]) {
+                    tileStates[i] = 'state-correct';
+                    targetLetterCounts[guessWord[i]]--;
+                }
+            }
+
+            // Step 3: Second pass for PRESENT/YELLOW matches
+            for (let i = 0; i < WORD_LENGTH; i++) {
+                if (tileStates[i] !== 'state-correct') {
+                    const char = guessWord[i];
+                    if (targetWord.includes(char) && targetLetterCounts[char] > 0) {
+                        tileStates[i] = 'state-present';
+                        targetLetterCounts[char]--;
+                    }
+                }
+            }
+
+            // Step 4: Animate tiles row reveal sequentially
+            revealRowTiles(currentAttempt, guessWord, tileStates);
+
+            // Step 5: Construct and announce detailed screen reader accessibility status update
+            announceGuessResultToScreenReader(currentAttempt + 1, guessWord, tileStates);
+        }
+
+        /* ==========================================================================
+           7. ANIMATIONS & REVEAL EFFECTS
+           ========================================================================== */
+        // Flip row tiles sequentially with staggered delay
+        function revealRowTiles(row, guessWord, tileStates) {
+            for (let col = 0; col < WORD_LENGTH; col++) {
+                setTimeout(() => {
+                    const tile = document.getElementById(`tile-${row}-${col}`);
+                    const backTile = tile.querySelector('.tile-back');
+                    const letterSpan = backTile.querySelector('.tile-letter');
+                    const symbolSpan = backTile.querySelector('.tile-indicator-symbol');
+                    const textSpan = backTile.querySelector('.tile-indicator-text');
+                    
+                    const stateClass = tileStates[col];
+                    const indicator = INDICATORS[stateClass];
+
+                    letterSpan.textContent = guessWord[col];
+                    symbolSpan.textContent = indicator.symbol;
+                    textSpan.textContent = indicator.text;
+
+                    backTile.classList.remove('state-empty');
+                    backTile.classList.add(stateClass);
+
+                    tile.classList.add('flip');
+
+                    // Update Virtual Keyboard Color & Symbol State
+                    updateKeyboardKey(guessWord[col], stateClass);
+
+                    // When final tile finishes flipping
+                    if (col === WORD_LENGTH - 1) {
+                        setTimeout(() => {
+                            isRevealing = false;
+                            checkGameEndCondition(guessWord);
+                        }, 500);
+                    }
+                }, col * 250); // 250ms delay between tiles
+            }
+        }
+
+        // Apply shake animation to active row on invalid action
+        function shakeRow(row) {
+            const rowElement = boardElement.children[row];
+            rowElement.classList.add('animate-shake');
+            setTimeout(() => rowElement.classList.remove('animate-shake'), 500);
+        }
+
+        // Apply winning bounce animation across tile elements in winning row
+        function bounceWinRow(row) {
+            for (let col = 0; col < WORD_LENGTH; col++) {
+                setTimeout(() => {
+                    const tile = document.getElementById(`tile-${row}-${col}`);
+                    tile.classList.add('animate-bounce-win');
+                }, col * 100);
+            }
+        }
+
+        // Dynamically update on-screen virtual keyboard colors and accessible badges based on tile states
+        function updateKeyboardKey(letter, newState) {
+            const keyBtn = Array.from(keyboardElement.querySelectorAll('.key-btn'))
+                .find(btn => btn.dataset.key === letter);
+
+            if (!keyBtn) return;
+
+            // Key Priority: Correct (Green/Blue) > Present (Yellow/Orange) > Absent (Gray)
+            if (keyBtn.classList.contains('state-correct')) return;
+            if (keyBtn.classList.contains('state-present') && newState === 'state-absent') return;
+
+            keyBtn.classList.remove('state-absent', 'state-present', 'state-correct', 'bg-slate-200', 'dark:bg-slate-700');
+            keyBtn.classList.add(newState);
+
+            // Append or update small visual symbol badge on top right of virtual key
+            let badge = keyBtn.querySelector('.key-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'key-badge absolute top-0.5 right-1 text-[8px] sm:text-[9px] font-bold opacity-80 leading-none pointer-events-none';
+                keyBtn.appendChild(badge);
+            }
+            badge.textContent = INDICATORS[newState].symbol;
+        }
+
+        /* ==========================================================================
+           8. WIN/LOSS GAME EVALUATION
+           ========================================================================== */
+        // Convert numbers to readable words for natural screen reader speech synthesis
+        function numberToWords(num) {
+            const words = ['zero', 'one', 'two', 'three', 'four', 'five', 'six'];
+            return words[num] || num.toString();
+        }
+
+        // Generate and broadcast human-readable guess evaluation summary for screen readers
+        function announceGuessResultToScreenReader(attemptNum, guessWord, tileStates) {
+            let correctCount = 0;
+            let presentCount = 0;
+            let absentCount = 0;
+
+            tileStates.forEach(state => {
+                if (state === 'state-correct') correctCount++;
+                else if (state === 'state-present') presentCount++;
+                else if (state === 'state-absent') absentCount++;
+            });
+
+            const spelledWord = guessWord.split('').join('-');
+
+            // Build clear, natural language breakdown segments
+            const parts = [];
+            
+            if (correctCount > 0) {
+                parts.push(`${numberToWords(correctCount)} ${correctCount === 1 ? 'letter' : 'letters'} in the right place`);
+            }
+            if (presentCount > 0) {
+                parts.push(`${numberToWords(presentCount)} ${presentCount === 1 ? 'letter' : 'letters'} in the wrong place`);
+            }
+            if (absentCount > 0) {
+                parts.push(`${numberToWords(absentCount)} ${absentCount === 1 ? 'letter' : 'letters'} not in the word`);
+            }
+
+            const breakdownText = parts.join(', ');
+            const announcement = `Guess ${attemptNum} of ${MAX_ATTEMPTS}: ${spelledWord}. ${breakdownText}.`;
+
+            // Broadcast via aria-live region
+            announceToScreenReader(announcement);
+        }
+
+        function checkGameEndCondition(guessWord) {
+            if (guessWord === targetWord) {
+                isGameOver = true;
+                bounceWinRow(currentAttempt);
+                setTimeout(() => {
+                    announceToScreenReader(`Congratulations! You guessed the word correctly in ${currentAttempt + 1} ${currentAttempt === 0 ? 'try' : 'tries'}! The target word was ${targetWord}.`);
+                    showModal(true, `Splendid! You guessed the word in ${currentAttempt + 1} ${currentAttempt === 0 ? 'try' : 'tries'}!`);
+                }, 1000);
+            } else if (currentAttempt === MAX_ATTEMPTS - 1) {
+                isGameOver = true;
+                setTimeout(() => {
+                    announceToScreenReader(`Game over! You've used all ${MAX_ATTEMPTS} attempts. The correct word was ${targetWord}.`);
+                    showModal(false, `Nice try! Better luck next time.`);
+                }, 600);
+            } else {
+                // Advance to next guess row attempt
+                currentAttempt++;
+                currentLetterPos = 0;
+                currentGuess = [];
+            }
+        }
+
+        /* ==========================================================================
+           9. UI UTILITIES (TOAST, MODALS, COLORBLIND TOGGLE & ACCESSIBILITY)
+           ========================================================================== */
+        // Toggle high-contrast colorblind accessibility theme
+        function toggleColorblindMode() {
+            isColorblindMode = !isColorblindMode;
+            document.body.classList.toggle('colorblind-mode', isColorblindMode);
+            const btn = document.getElementById('btn-colorblind');
+            btn.classList.toggle('bg-blue-600', isColorblindMode);
+            btn.classList.toggle('text-white', isColorblindMode);
+            showToast(isColorblindMode ? "Colorblind Mode Enabled" : "Colorblind Mode Disabled");
+        }
+
+        // Display floating toast message banner
+        function showToast(message) {
+            toastElement.textContent = message;
+            toastElement.classList.remove('-translate-y-12', 'opacity-0');
+            toastElement.classList.add('translate-y-0', 'opacity-100');
+
+            announceToScreenReader(message);
+
+            setTimeout(() => {
+                toastElement.classList.remove('translate-y-0', 'opacity-100');
+                toastElement.classList.add('-translate-y-12', 'opacity-0');
+            }, 2000);
+        }
+
+        // Show Win/Loss end modal box
+        function showModal(isWin, message) {
+            modalTitleElement.textContent = isWin ? "Victory!" : "Game Over";
+            modalMessageElement.textContent = message;
+            modalWordElement.textContent = targetWord;
+
+            modalElement.classList.remove('hidden');
+            setTimeout(() => {
+                modalContentElement.classList.remove('scale-95', 'opacity-0');
+                modalContentElement.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            announceToScreenReader(`${modalTitleElement.textContent}. ${message}. Target word was ${targetWord}`);
+        }
+
+        // Hide Win/Loss end modal box
+        function hideModal() {
+            modalContentElement.classList.remove('scale-100', 'opacity-100');
+            modalContentElement.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modalElement.classList.add('hidden');
+            }, 200);
+        }
+
+        // Update Screen Reader live announcement element
+        function announceToScreenReader(text) {
+            srAnnouncerElement.textContent = text;
+        }
+
+        /* ==========================================================================
+           10. EVENT LISTENERS SETUP
+           ========================================================================== */
+        // Physical Keyboard Input Listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleKeyPress('ENTER');
+            } else if (e.key === 'Backspace') {
+                handleKeyPress('BACKSPACE');
+            } else if (/^[a-zA-Z]$/.test(e.key)) {
+                handleKeyPress(e.key);
+            }
+        });
+
+        // Virtual On-Screen Keyboard Click Listener
+        keyboardElement.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (button && button.dataset.key) {
+                handleKeyPress(button.dataset.key);
+            }
+        });
+
+        // Accessibility Colorblind Mode Toggle Listener
+        document.getElementById('btn-colorblind').addEventListener('click', toggleColorblindMode);
+
+        // Restart Game Event Listeners
+        document.getElementById('btn-restart-header').addEventListener('click', initGame);
+        document.getElementById('btn-modal-restart').addEventListener('click', initGame);
+        
+        // Modal Statistics Toggle Button Event Listener
+        document.getElementById('btn-stats').addEventListener('click', () => {
+            showToast("Stats tracking coming soon!");
+        });
+
+        // Start animation loop on window load
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
