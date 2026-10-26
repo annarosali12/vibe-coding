@@ -8,13 +8,14 @@
 
     <style>
         /* CSS RESET & DESIGN VARIABLES */
-        /* Defines reusable color palettes, fonts, and dimensions used throughout the page layout */
+        /* Defines accessible color palettes, fonts, and dimensions optimized for high contrast ratio compliance */
         :root {
-            --primary-color: #ff6b8b;
-            --secondary-color: #ffa8ba;
+            --primary-color: #b83250; /* Rich, darkened berry pink ensuring WCAG AAA compliant text contrast */
+            --primary-light: #ff6b8b; /* Softer pink retained for playful decorative accents */
+            --secondary-color: #9e3b54; /* Darkened border color meeting WCAG non-text contrast standards */
             --background-color: #fff0f5;
             --card-background: #ffffff;
-            --text-color: #4a3b32;
+            --text-color: #3d2e27; /* High-contrast dark brown for optimal body text readability */
             --accent-color: #ffd166;
             --border-radius: 24px;
             --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -41,8 +42,8 @@
             position: relative;
             overflow-x: hidden;
             /* Creates a repeating pattern of subtle pink dots reminiscent of kitten paw pads */
-            background-image: radial-gradient(#ffa8ba 15%, transparent 16%),
-                              radial-gradient(#ffa8ba 15%, transparent 16%);
+            background-image: radial-gradient(#e8869e 15%, transparent 16%),
+                              radial-gradient(#e8869e 15%, transparent 16%);
             background-size: 60px 60px;
             background-position: 0 0, 30px 30px;
         }
@@ -57,7 +58,7 @@
             max-width: 800px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(255, 107, 139, 0.2);
+            box-shadow: 0 20px 40px rgba(184, 50, 80, 0.15);
             position: relative;
             margin-top: 20px;
         }
@@ -95,7 +96,7 @@
             height: 0;
             border-left: 22px solid transparent;
             border-right: 22px solid transparent;
-            border-bottom: 32px solid var(--primary-color);
+            border-bottom: 32px solid var(--primary-light);
         }
 
         /* HEADER TYPOGRAPHY */
@@ -123,20 +124,21 @@
             margin-bottom: 30px;
         }
 
-        /* Styles individual countdown boxes that surround each number unit */
+        /* Styles individual countdown boxes with solid white background to maximize numerical contrast ratio */
         .time-card {
-            background-color: var(--background-color);
-            border: 3px dashed var(--secondary-color);
+            background-color: var(--card-background);
+            border: 3px solid var(--secondary-color);
             border-radius: 16px;
             padding: 20px 10px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         }
 
         /* LARGE NUMBERS DISPLAY */
-        /* Styles the prominent numerical countdown digits */
+        /* Styles the prominent numerical countdown digits with high-contrast color */
         .number {
             font-size: 4rem;
             font-weight: 800;
@@ -233,7 +235,7 @@
         <!-- Header section containing the card title and target date information -->
         <header>
             <h1 id="title">🐾 Elinor's 1st Birthday Countdown 🐾</h1>
-            <p class="subtitle">Counting down to May 29, 2027 🎂</p>
+            <p class="subtitle">Counting down to May 28, 2027 🎂</p>
         </header>
 
         <!-- Hidden live status region allowing screen readers to hear periodic time updates -->
@@ -276,11 +278,11 @@
     </main>
 
     <script>
-        // v1.1 - Added celebration message replacing numbers at zero and enhanced descriptive comments
+        // v1.4 - Further darkened secondary border color to ensure WCAG non-text contrast compliance
 
         // BLOCK 1: TARGET DATE SETUP
-        // Define the target timestamp for Elinor's 1st Birthday: May 29, 2027 at Midnight (in milliseconds).
-        const TARGET_DATE = new Date('May 29, 2027 00:00:00').getTime();
+        // Define the target timestamp for Elinor's 1st Birthday: May 28, 2027 at Midnight (in milliseconds).
+        const TARGET_DATE = new Date('May 28, 2027 00:00:00').getTime();
 
         // BLOCK 2: DOM ELEMENT REFERENCES
         // Grab elements from the HTML page using their IDs so JavaScript can update their contents.
