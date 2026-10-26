@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Annual Storewide Volunteer Day Sign Up</title>
+    <!-- Tailwind CSS CDN for modern responsive utility classes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Configure Tailwind custom focus and primary colors
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom accessibility styles for visible high-contrast focus rings */
+        :focus-visible {
+            outline: 3px solid #2563eb !important;
+            outline-offset: 2px !important;
+        }
+        /* Custom screen-reader only utility class if needed */
+        .sr-only-focusable:not(:focus) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen py-8 px-4 sm:px-6 lg:px-8 font-sans antialiased">
+
+    <!-- Main Container -->
+    <main class="max-w-2xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-xl border border-slate-200">
+        
+        <!-- Form Header -->
+        <header class="mb-8 border-b border-slate-200 pb-5">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Annual Storewide Volunteer Day Sign Up</h1>
+            <p class="mt-2 text-sm text-slate-600">
+                Please fill out the form below to reserve your spot. Fields marked with <span class="text-red-600 font-bold" aria-hidden="true">*</span><span class="text-red-600 font-semibold">(required)</span> must be completed.
+            </p>
+        </header>
+
+        <!-- Accessibility Live Region for Screen Readers -->
+        <!-- Dynamic error summary or confirmation announcements will be placed here -->
+        <div id="aria-live-region" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+        <!-- Visible Error Summary Alert Box (Hidden by default) -->
+        <div id="error-summary-box" class="hidden mb-6 p-4 bg-red-50 border-l-4 border-red-600 rounded-r-md text-red-900" role="alert" tabindex="-1">
+            <h2 class="text-base font-bold flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                There are errors in your submission
+            </h2>
+            <p class="text-sm mt-1">Please correct the highlighted fields below before submitting.</p>
+            <ul id="error-summary-list" class="list-disc list-inside text-sm mt-2 space-y-1 font-medium"></ul>
+        </div>
+
+        <!-- Shared State Banner Notification (Shown if page loaded with URL parameters) -->
+        <div id="restored-banner" class="hidden mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 text-sm flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+                <p class="font-semibold">Form Loaded from Shared Link</p>
+                <p class="text-slate-600 mt-0.5">The fields below have been pre-filled from your shared URL parameters.</p>
+            </div>
+        </div>
+
+        <!-- Registration Form -->
+        <form id="signup-form" novalidate class="space-y-6">
+
+            <!-- Name Input Field -->
+            <div class="form-group">
+                <label for="full-name" class="block text-sm font-semibold text-slate-900 mb-1">
+                    Full Name <span class="text-red-600 font-bold" aria-hidden="true">*</span> <span class="text-xs font-normal text-red-600">(required)</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="full-name" 
+                    name="fullName" 
+                    required 
+                    aria-required="true"
+                    aria-describedby="full-name-error"
+                    class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    placeholder="Jane Doe"
+                >
+                <p id="full-name-error" class="hidden mt-1 text-sm text-red-600 font-medium" role="status"></p>
+            </div>
+
+            <!-- Email Input Field -->
+            <div class="form-group">
+                <label for="email-address" class="block text-sm font-semibold text-slate-900 mb-1">
+                    Email Address <span class="text-red-600 font-bold" aria-hidden="true">*</span> <span class="text-xs font-normal text-red-600">(required)</span>
+                </label>
+                <input 
+                    type="email" 
+                    id="email-address" 
+                    name="email" 
+                    required 
+                    aria-required="true"
+                    aria-describedby="email-address-error"
+                    class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    placeholder="jane.doe@example.com"
+                >
+                <p id="email-address-error" class="hidden mt-1 text-sm text-red-600 font-medium" role="status"></p>
+            </div>
+
+            <!-- Event Date Picker -->
+            <div class="form-group">
+                <label for="event-date" class="block text-sm font-semibold text-slate-900 mb-1">
+                    Event Date <span class="text-red-600 font-bold" aria-hidden="true">*</span> <span class="text-xs font-normal text-red-600">(required)</span>
+                </label>
+                <input 
+                    type="date" 
+                    id="event-date" 
+                    name="eventDate" 
+                    required 
+                    aria-required="true"
+                    aria-describedby="event-date-error"
+                    class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900"
+                >
+                <p id="event-date-error" class="hidden mt-1 text-sm text-red-600 font-medium" role="status"></p>
+            </div>
+
+            <!-- Radio Button Group: Session Selection -->
+            <fieldset class="form-group border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+                <legend class="text-sm font-semibold text-slate-900 px-1">
+                    Select Session <span class="text-red-600 font-bold" aria-hidden="true">*</span> <span class="text-xs font-normal text-red-600">(required)</span>
+                </legend>
+                <p class="text-xs text-slate-500 mb-3">Choose one session you wish to attend.</p>
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        <input 
+                            type="radio" 
+                            id="session-morning" 
+                            name="session" 
+                            value="Morning Session" 
+                            required 
+                            aria-required="true"
+                            aria-describedby="session-error"
+                            class="h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="session-morning" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Morning Session (9:00 AM – 12:00 PM)
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input 
+                            type="radio" 
+                            id="session-afternoon" 
+                            name="session" 
+                            value="Afternoon Session" 
+                            aria-describedby="session-error"
+                            class="h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="session-afternoon" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Afternoon Session (1:00 PM – 4:00 PM)
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input 
+                            type="radio" 
+                            id="session-evening" 
+                            name="session" 
+                            value="Evening Session" 
+                            aria-describedby="session-error"
+                            class="h-4 w-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="session-evening" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Evening Session (5:00 PM – 8:00 PM)
+                        </label>
+                    </div>
+                </div>
+                <p id="session-error" class="hidden mt-2 text-sm text-red-600 font-medium" role="status"></p>
+            </fieldset>
+
+            <!-- Checkbox Group: Things You Can Bring (Optional) -->
+            <fieldset class="form-group border border-slate-200 rounded-lg p-4 bg-slate-50/50">
+                <legend class="text-sm font-semibold text-slate-900 px-1">
+                    Things You Can Bring <span class="text-xs font-normal text-slate-500">(optional)</span>
+                </legend>
+                <p class="text-xs text-slate-500 mb-3">Select any items you are able to supply for the event.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="bring-snacks" 
+                            name="itemsToBring" 
+                            value="Snacks" 
+                            class="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="bring-snacks" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Snacks & Refreshments
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="bring-games" 
+                            name="itemsToBring" 
+                            value="Games" 
+                            class="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="bring-games" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Board Games / Activities
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="bring-chairs" 
+                            name="itemsToBring" 
+                            value="Folding Chairs" 
+                            class="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="bring-chairs" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Folding Chairs
+                        </label>
+                    </div>
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="bring-nametags" 
+                            name="itemsToBring" 
+                            value="Name Tags" 
+                            class="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        >
+                        <label for="bring-nametags" class="ml-3 block text-sm font-medium text-slate-700 cursor-pointer">
+                            Name Tags & Markers
+                        </label>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Dropdown Select: Referral Source -->
+            <div class="form-group">
+                <label for="referral-source" class="block text-sm font-semibold text-slate-900 mb-1">
+                    How did you hear about us? <span class="text-red-600 font-bold" aria-hidden="true">*</span> <span class="text-xs font-normal text-red-600">(required)</span>
+                </label>
+                <select 
+                    id="referral-source" 
+                    name="referralSource" 
+                    required 
+                    aria-required="true"
+                    aria-describedby="referral-source-error"
+                    class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900"
+                >
+                    <option value="" disabled selected>-- Select an option --</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Friend / Word of Mouth">Friend / Word of Mouth</option>
+                    <option value="Library Newsletter">Library Newsletter</option>
+                    <option value="Flyer / Poster">Flyer / Poster</option>
+                </select>
+                <p id="referral-source-error" class="hidden mt-1 text-sm text-red-600 font-medium" role="status"></p>
+            </div>
+
+            <!-- Notes / Special Instructions Textarea -->
+            <div class="form-group">
+                <label for="notes" class="block text-sm font-semibold text-slate-900 mb-1">
+                    Notes / Accessibility Requirements <span class="text-xs font-normal text-slate-500">(optional)</span>
+                </label>
+                <textarea 
+                    id="notes" 
+                    name="notes" 
+                    rows="3" 
+                    class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-slate-900 placeholder:text-slate-400"
+                    placeholder="Add dietary restrictions, mobility needs, or additional comments here..."
+                ></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="pt-2">
+                <button 
+                    type="submit" 
+                    id="submit-btn"
+                    class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold rounded-lg shadow-md transition-colors focus:ring-4 focus:ring-blue-300 cursor-pointer text-base"
+                >
+                    Complete Registration
+                </button>
+            </div>
+        </form>
+
+        <!-- Share Link Card Section (Visible after successful validation) -->
+        <section id="share-section" class="hidden mt-8 pt-8 border-t border-slate-200" aria-labelledby="share-heading">
+            <div class="bg-green-50 border border-green-200 rounded-xl p-5 sm:p-6">
+                <div class="flex items-center gap-3 text-brand-800 mb-3">
+                    <svg class="w-6 h-6 text-brand-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h2 id="share-heading" class="text-lg font-bold">Registration Saved Successfully!</h2>
+                </div>
+                <p class="text-sm text-slate-700 mb-4">
+                    Your answers have been generated into a shareable URL. You can bookmark or share this URL to re-populate this exact form state at any time.
+                </p>
+
+                <!-- Generated URL Field and Copy Button -->
+                <div class="space-y-3">
+                    <label for="generated-url" class="block text-xs font-semibold uppercase tracking-wider text-slate-600">
+                        Shareable Link
+                    </label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input 
+                            type="text" 
+                            id="generated-url" 
+                            readonly 
+                            class="flex-1 px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-700 select-all font-mono shadow-inner"
+                        >
+                        <button 
+                            type="button" 
+                            id="copy-btn" 
+                            class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 active:bg-black text-white font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                            <span id="copy-btn-text">Copy Link</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Region Feedback for Copy Button -->
+                <p id="copy-feedback" class="text-xs text-brand-700 font-semibold mt-2 hidden" role="status"></p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript Logic Block -->
+    <script>
+        // v1.1 - Updated title to Annual Storewide Volunteer Day Sign Up; maintained full accessibility, URL parameter state persistence, and keyboard support
+
+        /**
+         * Plain language explanation:
+         * This script manages form state parsing, real-time and submit validation,
+         * accessibility focus management, live screen reader alerts, and generating
+         * shareable URLs that restore form inputs upon page load.
+         */
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Element References
+            const form = document.getElementById('signup-form');
+            const liveRegion = document.getElementById('aria-live-region');
+            const errorSummaryBox = document.getElementById('error-summary-box');
+            const errorSummaryList = document.getElementById('error-summary-list');
+            const shareSection = document.getElementById('share-section');
+            const generatedUrlInput = document.getElementById('generated-url');
+            const copyBtn = document.getElementById('copy-btn');
+            const copyBtnText = document.getElementById('copy-btn-text');
+            const copyFeedback = document.getElementById('copy-feedback');
+            const restoredBanner = document.getElementById('restored-banner');
+
+            // Form Field References
+            const fullNameInput = document.getElementById('full-name');
+            const emailInput = document.getElementById('email-address');
+            const eventDateInput = document.getElementById('event-date');
+            const sessionInputs = document.querySelectorAll('input[name="session"]');
+            const referralSelect = document.getElementById('referral-source');
+            const notesInput = document.getElementById('notes');
+
+            // Helper function to update screen reader live region dynamically
+            function announceToScreenReader(message) {
+                liveRegion.textContent = '';
+                setTimeout(() => {
+                    liveRegion.textContent = message;
+                }, 50);
+            }
+
+            // Helper function to show element error state
+            function setFieldError(fieldElement, errorElementId, message) {
+                const errorElement = document.getElementById(errorElementId);
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.classList.remove('hidden');
+                }
+                if (fieldElement) {
+                    fieldElement.setAttribute('aria-invalid', 'true');
+                    fieldElement.classList.add('border-red-500', 'bg-red-50/30');
+                }
+            }
+
+            // Helper function to clear single field error state
+            function clearFieldError(fieldElement, errorElementId) {
+                const errorElement = document.getElementById(errorElementId);
+                if (errorElement) {
+                    errorElement.textContent = '';
+                    errorElement.classList.add('hidden');
+                }
+                if (fieldElement) {
+                    fieldElement.removeAttribute('aria-invalid');
+                    fieldElement.classList.remove('border-red-500', 'bg-red-50/30');
+                }
+            }
+
+            // Clear all current visible errors
+            function clearAllErrors() {
+                errorSummaryBox.classList.add('hidden');
+                errorSummaryList.innerHTML = '';
+                
+                clearFieldError(fullNameInput, 'full-name-error');
+                clearFieldError(emailInput, 'email-address-error');
+                clearFieldError(eventDateInput, 'event-date-error');
+                
+                // For radio button group
+                const sessionError = document.getElementById('session-error');
+                sessionError.classList.add('hidden');
+                sessionError.textContent = '';
+                sessionInputs.forEach(radio => radio.removeAttribute('aria-invalid'));
+
+                clearFieldError(referralSelect, 'referral-source-error');
+            }
+
+            // Validation Logic Function
+            function validateForm() {
+                clearAllErrors();
+                const errors = [];
+                let firstInvalidElement = null;
+
+                // 1. Full Name Validation
+                if (!fullNameInput.value.trim()) {
+                    const msg = 'Please enter your full name.';
+                    errors.push({ element: fullNameInput, message: msg, label: 'Full Name' });
+                    setFieldError(fullNameInput, 'full-name-error', msg);
+                    if (!firstInvalidElement) firstInvalidElement = fullNameInput;
+                }
+
+                // 2. Email Validation
+                const emailValue = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailValue) {
+                    const msg = 'Please enter your email address.';
+                    errors.push({ element: emailInput, message: msg, label: 'Email Address' });
+                    setFieldError(emailInput, 'email-address-error', msg);
+                    if (!firstInvalidElement) firstInvalidElement = emailInput;
+                } else if (!emailRegex.test(emailValue)) {
+                    const msg = 'Please enter a valid email address (e.g., name@example.com).';
+                    errors.push({ element: emailInput, message: msg, label: 'Email Address' });
+                    setFieldError(emailInput, 'email-address-error', msg);
+                    if (!firstInvalidElement) firstInvalidElement = emailInput;
+                }
+
+                // 3. Event Date Validation
+                if (!eventDateInput.value) {
+                    const msg = 'Please select a date for the event.';
+                    errors.push({ element: eventDateInput, message: msg, label: 'Event Date' });
+                    setFieldError(eventDateInput, 'event-date-error', msg);
+                    if (!firstInvalidElement) firstInvalidElement = eventDateInput;
+                }
+
+                // 4. Radio Group (Session) Validation
+                const selectedSession = document.querySelector('input[name="session"]:checked');
+                if (!selectedSession) {
+                    const msg = 'Please select a session to attend.';
+                    errors.push({ element: sessionInputs[0], message: msg, label: 'Session Choice' });
+                    const sessionError = document.getElementById('session-error');
+                    sessionError.textContent = msg;
+                    sessionError.classList.remove('hidden');
+                    sessionInputs.forEach(radio => radio.setAttribute('aria-invalid', 'true'));
+                    if (!firstInvalidElement) firstInvalidElement = sessionInputs[0];
+                }
+
+                // 5. Dropdown Selection Validation
+                if (!referralSelect.value) {
+                    const msg = 'Please select how you heard about us.';
+                    errors.push({ element: referralSelect, message: msg, label: 'Referral Source' });
+                    setFieldError(referralSelect, 'referral-source-error', msg);
+                    if (!firstInvalidElement) firstInvalidElement = referralSelect;
+                }
+
+                return {
+                    isValid: errors.length === 0,
+                    errors: errors,
+                    firstInvalidElement: firstInvalidElement
+                };
+            }
+
+            // Submit Event Listener
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const validation = validateForm();
+
+                if (!validation.isValid) {
+                    // Populate visible error summary box
+                    errorSummaryList.innerHTML = '';
+                    validation.errors.forEach(err => {
+                        const li = document.createElement('li');
+                        const anchor = document.createElement('a');
+                        anchor.href = '#' + (err.element.id || 'signup-form');
+                        anchor.textContent = `${err.label}: ${err.message}`;
+                        anchor.className = 'underline hover:text-red-800 focus:outline-none';
+                        anchor.addEventListener('click', (evt) => {
+                            evt.preventDefault();
+                            err.element.focus();
+                        });
+                        li.appendChild(anchor);
+                        errorSummaryList.appendChild(li);
+                    });
+
+                    errorSummaryBox.classList.remove('hidden');
+
+                    // Announce errors to screen readers dynamically
+                    const alertMessage = `Form submission failed with ${validation.errors.length} error${validation.errors.length > 1 ? 's' : ''}. Focusing on the first missing field.`;
+                    announceToScreenReader(alertMessage);
+
+                    // Move programmatic focus to the first problem field
+                    if (validation.firstInvalidElement) {
+                        validation.firstInvalidElement.focus();
+                    }
+                    
+                    shareSection.classList.add('hidden');
+                } else {
+                    // Form is valid! Build URL with query parameters
+                    clearAllErrors();
+
+                    const formData = new FormData(form);
+                    const params = new URLSearchParams();
+
+                    // Serialize all form fields
+                    for (let [key, value] of formData.entries()) {
+                        params.append(key, value);
+                    }
+
+                    // Build full URL string
+                    const baseUrl = window.location.origin + window.location.pathname;
+                    const shareableUrl = `${baseUrl}?${params.toString()}`;
+
+                    // Set URL input text
+                    generatedUrlInput.value = shareableUrl;
+                    shareSection.classList.remove('hidden');
+
+                    // Announce success
+                    announceToScreenReader('Form submitted successfully! Your shareable link is ready below.');
+
+                    // Scroll share section into view smoothly
+                    shareSection.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+
+            // Copy Link Button Action with execCommand fallback for strict iFrame environments
+            copyBtn.addEventListener('click', () => {
+                const urlToCopy = generatedUrlInput.value;
+                if (!urlToCopy) return;
+
+                // Select text in input field
+                generatedUrlInput.select();
+                generatedUrlInput.setSelectionRange(0, 99999); // Mobile compatibility
+
+                let successful = false;
+                try {
+                    // Modern clipboard attempt or legacy document.execCommand fallback
+                    successful = document.execCommand('copy');
+                } catch (err) {
+                    successful = false;
+                }
+
+                if (successful) {
+                    copyBtnText.textContent = 'Copied!';
+                    copyFeedback.textContent = 'Link copied to clipboard successfully!';
+                    copyFeedback.classList.remove('hidden');
+                    announceToScreenReader('Link copied to clipboard');
+
+                    setTimeout(() => {
+                        copyBtnText.textContent = 'Copy Link';
+                        copyFeedback.classList.add('hidden');
+                    }, 3000);
+                } else {
+                    copyFeedback.textContent = 'Failed to copy automatically. Please copy the text manually.';
+                    copyFeedback.classList.remove('hidden');
+                }
+            });
+
+            // Parse URL parameters and pre-populate form on initial page load
+            function restoreFormFromUrl() {
+                const searchParams = new URLSearchParams(window.location.search);
+                if (searchParams.toString() === '') return;
+
+                let restoredAny = false;
+
+                // Pre-fill text, email, date, select, and textarea inputs
+                if (searchParams.has('fullName')) {
+                    fullNameInput.value = searchParams.get('fullName');
+                    restoredAny = true;
+                }
+                if (searchParams.has('email')) {
+                    emailInput.value = searchParams.get('email');
+                    restoredAny = true;
+                }
+                if (searchParams.has('eventDate')) {
+                    eventDateInput.value = searchParams.get('eventDate');
+                    restoredAny = true;
+                }
+                if (searchParams.has('referralSource')) {
+                    referralSelect.value = searchParams.get('referralSource');
+                    restoredAny = true;
+                }
+                if (searchParams.has('notes')) {
+                    notesInput.value = searchParams.get('notes');
+                    restoredAny = true;
+                }
+
+                // Pre-fill radio buttons (Session)
+                if (searchParams.has('session')) {
+                    const sessionVal = searchParams.get('session');
+                    const targetRadio = document.querySelector(`input[name="session"][value="${sessionVal}"]`);
+                    if (targetRadio) {
+                        targetRadio.checked = true;
+                        restoredAny = true;
+                    }
+                }
+
+                // Pre-fill checkboxes (Items to bring)
+                if (searchParams.has('itemsToBring')) {
+                    const items = searchParams.getAll('itemsToBring');
+                    const checkboxes = document.querySelectorAll('input[name="itemsToBring"]');
+                    checkboxes.forEach(cb => {
+                        if (items.includes(cb.value)) {
+                            cb.checked = true;
+                            restoredAny = true;
+                        }
+                    });
+                }
+
+                if (restoredAny) {
+                    restoredBanner.classList.remove('hidden');
+                    announceToScreenReader('Form fields have been pre-filled from the provided URL parameters.');
+                }
+            }
+
+            // Run restoration check on load
+            restoreFormFromUrl();
+        });
+    </script>
+</body>
+</html>
