@@ -123,7 +123,11 @@
             <div class="absolute w-72 h-72 md:w-80 md:h-80 rounded-full bg-purple-600/10 blur-2xl pointer-events-none"></div>
 
             <!-- The Main 8-Ball Sphere -->
-            <div id="magic-ball" class="ball-surface relative w-72 h-72 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center animate-float animate-pulse-glow transition-transform duration-300 border border-slate-800">
+            <div id="magic-ball" 
+                 role="button" 
+                 tabindex="0" 
+                 aria-label="Shake Magic 8-Ball to ask question"
+                 class="ball-surface relative w-72 h-72 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center animate-float animate-pulse-glow transition-transform duration-300 border border-slate-800 cursor-pointer focus-visible:ring-4 focus-visible:ring-purple-400 focus-visible:outline-none">
                 
                 <!-- Specular Highlight overlay for 3D sphere realism -->
                 <div class="ball-highlight absolute top-2 left-1/2 -translate-x-1/2 w-48 h-24 rounded-full pointer-events-none"></div>
@@ -159,7 +163,8 @@
                         maxlength="120"
                         autocomplete="off"
                         aria-label="Type your question for the Magic 8-Ball and press Enter"
-                        class="w-full px-4 py-3.5 bg-slate-950/80 border border-slate-700/60 rounded-xl text-slate-100 placeholder-slate-400 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all shadow-inner"
+                        aria-invalid="false"
+                        class="w-full px-4 py-3.5 bg-slate-950/80 border border-slate-700/60 rounded-xl text-slate-100 placeholder-slate-400 text-sm md:text-base focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 focus-visible:border-transparent transition-all shadow-inner"
                     >
                 </div>
             </div>
@@ -168,12 +173,12 @@
                 type="submit" 
                 id="ask-button"
                 aria-label="Shake the Magic 8-Ball for an answer"
-                class="w-full py-3.5 px-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-600 active:scale-[0.99] text-white font-semibold rounded-xl shadow-lg shadow-purple-900/30 transition-all duration-200 flex items-center justify-center space-x-2 font-sans cursor-pointer border border-purple-400/20"
+                class="w-full py-3.5 px-6 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-600 active:scale-[0.99] focus-visible:ring-4 focus-visible:ring-purple-400 focus-visible:outline-none text-white font-semibold rounded-xl shadow-lg shadow-purple-900/30 transition-all duration-200 flex items-center justify-center space-x-2 font-sans cursor-pointer border border-purple-400/20"
             >
-                <svg class="w-5 h-5 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg id="button-icon" class="w-5 h-5 opacity-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
                 </svg>
-                <span>Ask Question (Enter)</span>
+                <span id="button-text">Ask Question (Enter)</span>
             </button>
         </form>
 
@@ -211,6 +216,8 @@
             const answerText = document.getElementById('answer-text');
             const questionInput = document.getElementById('question-input');
             const askButton = document.getElementById('ask-button');
+            const buttonText = document.getElementById('button-text');
+            const buttonIcon = document.getElementById('button-icon');
             const srAnnouncer = document.getElementById('sr-announcer');
 
             // Prevent multiple concurrent animations
@@ -227,6 +234,7 @@
                 // Validation: Check if a question was entered
                 if (!question) {
                     questionInput.focus();
+                    questionInput.setAttribute('aria-invalid', 'true');
                     questionInput.classList.add('border-rose-500/80', 'ring-2', 'ring-rose-500/20');
                     srAnnouncer.textContent = "Please type a question before asking the oracle.";
                     
@@ -236,10 +244,19 @@
                     return;
                 }
 
-                // Lock interactive UI during response phase
+                questionInput.setAttribute('aria-invalid', 'false');
+
+                // Lock interactive UI during response phase & set explicit state indicators
                 isShaking = true;
                 askButton.disabled = true;
-                askButton.classList.add('opacity-50', 'cursor-not-allowed');
+                askButton.setAttribute('aria-disabled', 'true');
+                askButton.setAttribute('aria-busy', 'true');
+                askButton.classList.add('opacity-70', 'cursor-not-allowed');
+                buttonText.textContent = "Consulting the Oracle...";
+                buttonIcon.classList.add('animate-spin');
+
+                magicBall.setAttribute('aria-disabled', 'true');
+                magicBall.setAttribute('aria-busy', 'true');
 
                 // Step 1: Reset window state and reset answer animation classes
                 answerText.classList.remove('animate-water-rise');
@@ -283,7 +300,14 @@
                     setTimeout(() => {
                         isShaking = false;
                         askButton.disabled = false;
-                        askButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                        askButton.removeAttribute('aria-disabled');
+                        askButton.removeAttribute('aria-busy');
+                        askButton.classList.remove('opacity-70', 'cursor-not-allowed');
+                        buttonText.textContent = "Ask Question (Enter)";
+                        buttonIcon.classList.remove('animate-spin');
+
+                        magicBall.removeAttribute('aria-disabled');
+                        magicBall.removeAttribute('aria-busy');
                     }, 2200);
 
                 }, 600);
@@ -308,14 +332,28 @@
             });
 
             /**
-             * Optional Click Trigger: Allow shaking by tapping directly on the 8-Ball if a question is typed
+             * Optional Click & Keyboard Triggers for Magic Ball
              */
             magicBall.addEventListener('click', () => {
                 if (questionInput.value.trim() !== '') {
                     consultOracle();
                 } else {
                     questionInput.focus();
+                    questionInput.setAttribute('aria-invalid', 'true');
                     srAnnouncer.textContent = "Please type a question in the box first.";
+                }
+            });
+
+            magicBall.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    if (questionInput.value.trim() !== '') {
+                        consultOracle();
+                    } else {
+                        questionInput.focus();
+                        questionInput.setAttribute('aria-invalid', 'true');
+                        srAnnouncer.textContent = "Please type a question in the box first.";
+                    }
                 }
             });
         });
