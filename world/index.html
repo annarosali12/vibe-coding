@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swedish Meadow - A-Frame Interactive 3D Scene</title>
+  
+  <!-- 
+    Libraries used:
+    - A-Frame v1.4.2 (https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js) 
+      WebVR framework for 3D/VR experiences built on top of Three.js.
+  -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js"></script>
+
+  <!-- Tailwind CSS CDN for styling the UI and accessibility description block -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* Ensure the 3D canvas container scales smoothly */
+    .aframe-container {
+      width: 100%;
+      height: 70vh;
+      min-height: 400px;
+      position: relative;
+    }
+    
+    /* Focus indicators for accessibility */
+    button:focus, [tabindex="0"]:focus {
+      outline: 3px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    /* Custom scrollbars for text container */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+
+  <!-- 
+    // v1.0 - initial build
+    // Custom Vanilla JavaScript components for A-Frame custom logic
+  -->
+  <script>
+    // Component 1: Head Motion & Interaction Component for Cows
+    // Registers a click listener on cow entities to trigger head movements/nodding
+    AFRAME.registerComponent('cow-head-animator', {
+      schema: {
+        speed: { type: 'number', default: 1000 }
+      },
+      init: function () {
+        const el = this.el;
+        const head = el.querySelector('.cow-head');
+        let isNodding = false;
+
+        // When user clicks/taps on the cow or gaze-clicks via VR cursor
+        el.addEventListener('click', function () {
+          if (isNodding) return;
+          isNodding = true;
+
+          // Announce interaction to screen reader live region if present
+          const announcer = document.getElementById('sr-announcer');
+          if (announcer) {
+            announcer.textContent = "You clicked on a cow! It starts chewing and nodding its head.";
+          }
+
+          // Animate head down (chewing posture) and then back up using A-Frame animation system
+          head.setAttribute('animation__noddown', {
+            property: 'rotation',
+            to: '25 0 0',
+            dur: 400,
+            easing: 'easeInOutQuad'
+          });
+
+          // Chain nodding back and forth twice to simulate realistic chewing
+          setTimeout(() => {
+            head.setAttribute('animation__nodup', {
+              property: 'rotation',
+              to: '-10 0 0',
+              dur: 400,
+              easing: 'easeInOutQuad'
+            });
+          }, 450);
+
+          setTimeout(() => {
+            head.setAttribute('animation__noddown2', {
+              property: 'rotation',
+              to: '15 0 0',
+              dur: 400,
+              easing: 'easeInOutQuad'
+            });
+          }, 900);
+
+          setTimeout(() => {
+            head.setAttribute('animation__nodreset', {
+              property: 'rotation',
+              to: '0 0 0',
+              dur: 500,
+              easing: 'easeInOutQuad'
+            });
+            setTimeout(() => { isNodding = false; }, 550);
+          }, 1350);
+        });
+
+        // Hover effect cursor visual prompt
+        el.addEventListener('mouseenter', function () {
+          el.setAttribute('scale', '1.05 1.05 1.05');
+        });
+        el.addEventListener('mouseleave', function () {
+          el.setAttribute('scale', '1 1 1');
+        });
+      }
+    });
+
+    // Component 2: Stare at Player Component
+    // Makes the cows gently rotate their body/head to face the camera position as user moves
+    AFRAME.registerComponent('stare-at-player', {
+      schema: {
+        distanceThreshold: { type: 'number', default: 12 } // Distance in meters to trigger turning
+      },
+      init: function () {
+        this.camera = document.querySelector('[camera]');
+        this.initialRotation = this.el.getAttribute('rotation') || { x: 0, y: 0, z: 0 };
+        this.targetYRotation = this.initialRotation.y;
+      },
+      tick: function () {
+        if (!this.camera) return;
+
+        // Get world positions of camera and cow
+        const cameraPos = new THREE.Vector3();
+        const cowPos = new THREE.Vector3();
+        this.camera.object3D.getWorldPosition(cameraPos);
+        this.el.object3D.getWorldPosition(cowPos);
+
+        // Calculate horizontal distance between cow and player
+        const dx = cameraPos.x - cowPos.x;
+        const dz = cameraPos.z - cowPos.z;
+        const distance = Math.sqrt(dx * dx + dz * dz);
+
+        // If player is close enough, compute angle to turn towards player
+        if (distance < this.data.distanceThreshold) {
+          // Calculate angle in degrees along Y-axis to face player
+          const targetRad = Math.atan2(dx, dz);
+          this.targetYRotation = THREE.MathUtils.radToDeg(targetRad);
+        } else {
+          // Return to original default facing direction when player is far away
+          this.targetYRotation = this.initialRotation.y;
+        }
+
+        // Smoothly interpolate (LERP) current Y rotation towards target Y rotation
+        let currentRotY = this.el.object3D.rotation.y;
+        let targetRad = THREE.MathUtils.degToRad(this.targetYRotation);
+
+        // Shortest angle interpolation to avoid full 360 spin
+        let diff = Math.atan2(Math.sin(targetRad - currentRotY), Math.cos(targetRad - currentRotY));
+        this.el.object3D.rotation.y += diff * 0.05; // 0.05 speed factor for smooth, natural movement
+      }
+    });
+  </script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col justify-between">
+
+  <!-- Header section -->
+  <header class="p-4 bg-slate-800 border-b border-slate-700 shadow-md">
+    <div class="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-emerald-400">Swedish Meadow & Lake</h1>
+        <p class="text-sm text-slate-300">Interactive 3D Experience (A-Frame v1.4.2)</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs bg-emerald-950 text-emerald-300 border border-emerald-700 px-3 py-1 rounded-full">
+          Click cows to interact
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Screen Reader Live Region for VR announcements -->
+  <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Main Content Wrapper -->
+  <main class="flex-grow max-w-6xl w-full mx-auto p-4 flex flex-col gap-6">
+
+    <!-- VR Scene Container -->
+    <section class="aframe-container rounded-2xl overflow-hidden border border-slate-700 shadow-2xl bg-black" aria-label="3D Swedish countryside interactive canvas">
+      <a-scene embedded class="w-full h-full" cursor="rayOrigin: mouse" raycaster="objects: .clickable">
+        
+        <!-- Asset Management -->
+        <a-assets>
+          <a-mixin id="cow-body-mat" material="color: #ffffff; roughness: 0.8"></a-mixin>
+          <a-mixin id="cow-spot-mat" material="color: #1e1e1e; roughness: 0.8"></a-mixin>
+          <a-mixin id="wood-mat" material="color: #5c3a21; roughness: 0.9"></a-mixin>
+          <a-mixin id="red-house-mat" material="color: #991b1b; roughness: 0.6"></a-mixin>
+          <a-mixin id="white-trim-mat" material="color: #f8fafc; roughness: 0.5"></a-mixin>
+          <a-mixin id="foliage-mat" material="color: #14532d; roughness: 0.9"></a-mixin>
+        </a-assets>
+
+        <!-- Environment Lighting & Sky -->
+        <a-sky color="#87ceeb"></a-sky>
+        <a-light type="ambient" color="#ffffff" intensity="0.65"></a-light>
+        <a-light type="directional" color="#fffbeb" intensity="0.8" position="10 20 15" cast-shadow="true"></a-light>
+
+        <!-- Camera & Rig -->
+        <a-entity id="rig" position="0 1.6 8">
+          <a-camera look-controls="pointerLockEnabled: false" wasd-controls="acceleration: 20">
+            <!-- Visual reticle for gaze/touch interaction -->
+            <a-cursor 
+              id="cursor"
+              animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+              animation__fusing="property: fusing; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+              event-set__mouseenter="_event: mouseenter; color: #34d399"
+              event-set__mouseleave="_event: mouseleave; color: #ffffff"
+              raycaster="objects: .clickable"
+              color="#ffffff" 
+              opacity="0.7" 
+              scale="0.8 0.8 0.8">
+            </a-cursor>
+          </a-camera>
+        </a-entity>
+
+        <!-- TERRAIN / MEADOW GROUND -->
+        <!-- Main Green Grass Meadow -->
+        <a-plane position="0 0 0" rotation="-90 0 0" width="80" height="80" color="#22c55e" material="roughness: 0.95"></a-plane>
+
+        <!-- DOUBLE LINE GRAVEL PATH (Tractor Tracks) -->
+        <!-- Left Track -->
+        <a-plane position="-0.4 0.01 -5" rotation="-90 0 0" width="0.4" height="30" color="#78716c" material="roughness: 1"></a-plane>
+        <!-- Right Track -->
+        <a-plane position="0.4 0.01 -5" rotation="-90 0 0" width="0.4" height="30" color="#78716c" material="roughness: 1"></a-plane>
+        
+        <!-- Path extension sloping down towards forest and lake -->
+        <a-plane position="0 0.005 -25" rotation="-85 0 0" width="1.8" height="20" color="#a8a29e" material="roughness: 1"></a-plane>
+
+        <!-- FENCE SEPARATING MEADOW & COWS -->
+        <!-- Fence Posts and Rails -->
+        <a-entity id="fence" position="-2 0 2">
+          <!-- Posts -->
+          <a-box position="-8 0.6 0" width="0.15" height="1.2" depth="0.15" mixin="wood-mat"></a-box>
+          <a-box position="-4 0.6 0" width="0.15" height="1.2" depth="0.15" mixin="wood-mat"></a-box>
+          <a-box position="0 0.6 0" width="0.15" height="1.2" depth="0.15" mixin="wood-mat"></a-box>
+          <a-box position="4 0.6 0" width="0.15" height="1.2" depth="0.15" mixin="wood-mat"></a-box>
+          <a-box position="8 0.6 0" width="0.15" height="1.2" depth="0.15" mixin="wood-mat"></a-box>
+          <!-- Horizontal Rails -->
+          <a-box position="0 0.9 0" width="16.2" height="0.1" depth="0.08" mixin="wood-mat"></a-box>
+          <a-box position="0 0.4 0" width="16.2" height="0.1" depth="0.08" mixin="wood-mat"></a-box>
+        </a-entity>
+
+        <!-- ANIMATED INTERACTIVE COWS (GRAZING ON LEFT SIDE OF FENCE) -->
+        <!-- Cow 1 -->
+        <a-entity class="clickable" cow-head-animator stare-at-player position="-4 0 0">
+          <!-- Main Body -->
+          <a-box position="0 0.75 0" width="1" height="0.9" depth="1.6" mixin="cow-body-mat"></a-box>
+          <!-- Cow Black Spots -->
+          <a-box position="0.51 0.8 0.1" width="0.02" height="0.4" depth="0.5" mixin="cow-spot-mat"></a-box>
+          <a-box position="-0.51 0.7 -0.2" width="0.02" height="0.5" depth="0.6" mixin="cow-spot-mat"></a-box>
+          <!-- Legs -->
+          <a-cylinder position="-0.35 0.3 0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-cylinder position="0.35 0.3 0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-cylinder position="-0.35 0.3 -0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-cylinder position="0.35 0.3 -0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <!-- Interactive Head Unit (Rotates/Nods on click) -->
+          <a-entity class="cow-head" position="0 1.1 0.8">
+            <a-box position="0 0 0.2" width="0.5" height="0.5" depth="0.6" mixin="cow-body-mat"></a-box>
+            <!-- Snout/Muzzle -->
+            <a-box position="0 -0.1 0.5" width="0.4" height="0.3" depth="0.3" material="color: #fbcfe8; roughness: 0.7"></a-box>
+            <!-- Eyes -->
+            <a-sphere position="-0.26 0.1 0.3" radius="0.05" material="color: #000000"></a-sphere>
+            <a-sphere position="0.26 0.1 0.3" radius="0.05" material="color: #000000"></a-sphere>
+            <!-- Ears -->
+            <a-box position="-0.35 0.15 0" width="0.3" height="0.08" depth="0.1" rotation="0 0 -20" mixin="cow-body-mat"></a-box>
+            <a-box position="0.35 0.15 0" width="0.3" height="0.08" depth="0.1" rotation="0 0 20" mixin="cow-body-mat"></a-box>
+          </a-entity>
+        </a-entity>
+
+        <!-- Cow 2 -->
+        <a-entity class="clickable" cow-head-animator stare-at-player position="-7 0 -2">
+          <a-box position="0 0.75 0" width="1" height="0.9" depth="1.6" mixin="cow-body-mat"></a-box>
+          <a-box position="0.51 0.8 -0.1" width="0.02" height="0.5" depth="0.6" mixin="cow-spot-mat"></a-box>
+          <a-cylinder position="-0.35 0.3 0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-cylinder position="0.35 0.3 0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-cylinder position="-0.35 0.3 -0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-cylinder position="0.35 0.3 -0.6" radius="0.08" height="0.6" mixin="cow-body-mat"></a-cylinder>
+          <a-entity class="cow-head" position="0 1.1 0.8">
+            <a-box position="0 0 0.2" width="0.5" height="0.5" depth="0.6" mixin="cow-body-mat"></a-box>
+            <a-box position="0 -0.1 0.5" width="0.4" height="0.3" depth="0.3" material="color: #fbcfe8"></a-box>
+            <a-sphere position="-0.26 0.1 0.3" radius="0.05" material="color: #000000"></a-sphere>
+            <a-sphere position="0.26 0.1 0.3" radius="0.05" material="color: #000000"></a-sphere>
+          </a-entity>
+        </a-entity>
+
+        <!-- TRADITIONAL RED SWEDISH FARMHOUSES WITH WHITE TRIM -->
+        <!-- Farmhouse 1 (Distance Right) -->
+        <a-entity position="12 0 -8" rotation="0 -30 0">
+          <!-- Red House Body -->
+          <a-box position="0 2 0" width="6" height="4" depth="4" mixin="red-house-mat"></a-box>
+          <!-- White Trim Corners & Edges -->
+          <a-box position="-3.01 2 2.01" width="0.1" height="4.02" depth="0.1" mixin="white-trim-mat"></a-box>
+          <a-box position="3.01 2 2.01" width="0.1" height="4.02" depth="0.1" mixin="white-trim-mat"></a-box>
+          <a-box position="-3.01 2 -2.01" width="0.1" height="4.02" depth="0.1" mixin="white-trim-mat"></a-box>
+          <a-box position="3.01 2 -2.01" width="0.1" height="4.02" depth="0.1" mixin="white-trim-mat"></a-box>
+          <!-- Roof -->
+          <a-cone position="0 4.8 0" radius-bottom="4.5" height="1.8" segments-radial="4" rotation="0 45 0" material="color: #451a03; roughness: 0.8"></a-cone>
+          <!-- Door with White Frame -->
+          <a-box position="0 1 2.01" width="1.2" height="2" depth="0.05" mixin="white-trim-mat"></a-box>
+          <a-box position="0 0.95 2.03" width="1" height="1.8" depth="0.05" material="color: #1e293b"></a-box>
+        </a-entity>
+
+        <!-- Farmhouse 2 (Farther Distance) -->
+        <a-entity position="-15 0 -22" rotation="0 20 0">
+          <a-box position="0 2.5 0" width="7" height="5" depth="4.5" mixin="red-house-mat"></a-box>
+          <a-cone position="0 5.8 0" radius-bottom="5.2" height="2" segments-radial="4" rotation="0 45 0" material="color: #451a03"></a-cone>
+          <a-box position="0 1.25 2.26" width="1.4" height="2.5" depth="0.05" mixin="white-trim-mat"></a-box>
+        </a-entity>
+
+        <!-- PINE FOREST SURROUNDING THE SLOPE AND LAKE -->
+        <!-- Pine Tree Macro Template Instances -->
+        <a-entity position="5 0 -15">
+          <a-cylinder position="0 1 0" radius="0.25" height="2" mixin="wood-mat"></a-cylinder>
+          <a-cone position="0 3 0" radius-bottom="1.5" height="3" mixin="foliage-mat"></a-cone>
+          <a-cone position="0 4.5 0" radius-bottom="1.1" height="2.5" mixin="foliage-mat"></a-cone>
+        </a-entity>
+        <a-entity position="-6 0 -18">
+          <a-cylinder position="0 1 0" radius="0.25" height="2" mixin="wood-mat"></a-cylinder>
+          <a-cone position="0 3 0" radius-bottom="1.6" height="3" mixin="foliage-mat"></a-cone>
+          <a-cone position="0 4.8 0" radius-bottom="1.2" height="2.5" mixin="foliage-mat"></a-cone>
+        </a-entity>
+        <a-entity position="8 0 -22">
+          <a-cylinder position="0 1 0" radius="0.3" height="2" mixin="wood-mat"></a-cylinder>
+          <a-cone position="0 3.2 0" radius-bottom="1.8" height="3.2" mixin="foliage-mat"></a-cone>
+        </a-entity>
+
+        <!-- TWO LARGE FLAT PICNIC ROCKS AT END OF PATH -->
+        <a-cylinder position="-1.2 -0.2 -33" radius="1.8" height="0.6" material="color: #78716c; roughness: 0.9" rotation="5 15 -3"></a-cylinder>
+        <a-cylinder position="1.4 -0.2 -34" radius="2.2" height="0.7" material="color: #6b7280; roughness: 0.85" rotation="-2 -10 4"></a-cylinder>
+
+        <!-- DEEP LAKE WITH BLUE WATER -->
+        <a-plane position="0 -0.5 -50" rotation="-90 0 0" width="100" height="30" color="#0284c7" material="opacity: 0.88; roughness: 0.1; metalness: 0.2"></a-plane>
+
+        <!-- Distant Pines Around Lake -->
+        <a-entity position="-12 0 -45">
+
+        <a-plane position="0 -0.5 -50" rotation="-90 0 0" width="100" height="30" color="#78350f" material="opacity: 0.88; roughness: 0.1; metalness: 0.2"></a-plane>
+
+        <!-- Distant Pines Around Lake -->
+        <a-entity position="-12 0 -45">
+          <a-cone position="0 4 0" radius-bottom="2" height="5" mixin="foliage-mat"></a-cone>
+        </a-entity>
+        <a-entity position="15 0 -48">
+          <a-cone position="0 4.5 0" radius-bottom="2.2" height="5.5" mixin="foliage-mat"></a-cone>
+        </a-entity>
+
+      </a-scene>
+    </section>
+
+    <!-- Semantic Accessibility Card with full text narrative -->
+    <article class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg" aria-labelledby="accessibility-title">
+      <div class="flex items-center gap-2 mb-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 id="accessibility-title" class="text-lg font-semibold text-slate-100">Audio & Scene Description</h2>
+      </div>
+
+      <!-- Exact written text description provided for visual accessibility -->
+      <div class="prose prose-invert max-w-none text-slate-300 leading-relaxed bg-slate-900/60 p-4 rounded-lg border border-slate-700/50">
+        <p>
+          The world is center of a meadow in Sweden. The grass is long and green. Cows graze on one side of a fence. They stare at you as you walk by, huffing and chewing on blades of grass. The path you follow is a double line of gray, left after many tractors and cars passed through. Farmhouses are red with white trim. The path slopes down through a forest. It becomes gravel, then simply flattened grass after hundreds of footprints. It ends at a pair of flat rocks, ideal for having a picnic. Beyond them is a deep, cool lake surrounded by pine trees. The water is clean, turned a copper hue from the pine needles that have dropped into it. It’s perfect for swimming.
+        </p>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- Footer block -->
+  <footer class="p-4 bg-slate-800 border-t border-slate-700 text-center text-xs text-slate-400">
+    <p>Accessible WebVR Canvas Built with A-Frame v1.4.2 • Self-Contained Client Browser Application</p>
+  </footer>
+
+</body>
+</html>
