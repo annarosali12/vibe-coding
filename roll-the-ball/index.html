@@ -1,0 +1,620 @@
+<!--
+  3D Coin Collector Game - v1.0
+  
+  Libraries used:
+  - Three.js (v0.128.0) | CDN: cdnjs.cloudflare.com
+    Description: JavaScript 3D library used to render the game floor, marble, coins, lighting, and camera system.
+  - FontAwesome (v6.4.0) | CDN: cdnjs.cloudflare.com
+    Description: Used for decorative icons in HUD and touch controls.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Coin Collector Game</title>
+
+  <!-- Tailwind CSS CDN for styling modern UI and overlays -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome Icons for touch control visuals and UI badges -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Three.js (r128) for 3D WebGL rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    /* Ensure the body fills the screen and hides unwanted scrollbars */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    /* Container for the 3D WebGL canvas */
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
+
+    /* Styling for glassmorphism panels in HUD and Win screen */
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    /* Prevent interaction issues on touch arrows */
+    .touch-btn {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .touch-btn:active {
+      transform: scale(0.92);
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-white relative">
+
+  <!-- Accessible hidden live region for screen readers to announce score updates -->
+  <div id="sr-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Main 3D Canvas Viewport -->
+  <main id="canvas-container" role="region" aria-label="3D Game Viewport"></main>
+
+  <!-- HUD Overlay: Displays Score and Title -->
+  <header class="absolute top-4 left-4 right-4 z-10 flex justify-between items-center pointer-events-none">
+    <!-- Left side title badge -->
+    <div class="glass-panel px-4 py-2.5 rounded-2xl shadow-lg flex items-center space-x-3 pointer-events-auto">
+      <i class="fa-solid fa-gamepad text-amber-400 text-xl"></i>
+      <div>
+        <h1 class="text-sm font-bold tracking-wide uppercase text-amber-400">3D Coin Collector</h1>
+        <p class="text-xs text-slate-300 hidden sm:block">Roll the marble to collect all coins!</p>
+      </div>
+    </div>
+
+    <!-- Right side live score box -->
+    <div class="glass-panel px-5 py-2.5 rounded-2xl shadow-lg flex items-center space-x-3 pointer-events-auto">
+      <i class="fa-solid fa-coins text-amber-400 text-2xl animate-bounce"></i>
+      <div class="text-right">
+        <span class="text-xs uppercase tracking-wider text-slate-400 block font-semibold">Coins Collected</span>
+        <span id="score-display" class="text-2xl font-black text-amber-400 tracking-tight">0 / 3</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Controls Legend (Visible on medium and larger screens) -->
+  <aside class="absolute bottom-6 left-6 z-10 hidden md:block pointer-events-none">
+    <div class="glass-panel px-4 py-3 rounded-2xl text-xs text-slate-300 space-y-1.5 shadow-xl pointer-events-auto">
+      <div class="font-bold text-slate-100 mb-1 border-b border-slate-700/60 pb-1">
+        <i class="fa-solid fa-keyboard mr-1.5 text-amber-400"></i> Keyboard Controls
+      </div>
+      <div class="flex items-center justify-between space-x-4">
+        <span>Move Forward / Backward:</span>
+        <span class="font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-amber-300">W / S or Up / Down</span>
+      </div>
+      <div class="flex items-center justify-between space-x-4">
+        <span>Steer Left / Right:</span>
+        <span class="font-mono bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700 text-amber-300">A / D or Left / Right</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- On-screen Touch Controls (Visible on mobile and tablet screens) -->
+  <nav aria-label="On-screen touch controls" class="absolute bottom-6 right-6 z-10 md:hidden flex flex-col items-center space-y-2 pointer-events-auto">
+    <div>
+      <button id="btn-up" aria-label="Move Forward" class="touch-btn w-14 h-14 glass-panel rounded-2xl flex items-center justify-center text-xl text-amber-400 shadow-xl active:bg-amber-500/20">
+        <i class="fa-solid fa-chevron-up"></i>
+      </button>
+    </div>
+    <div class="flex space-x-2">
+      <button id="btn-left" aria-label="Steer Left" class="touch-btn w-14 h-14 glass-panel rounded-2xl flex items-center justify-center text-xl text-amber-400 shadow-xl active:bg-amber-500/20">
+        <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button id="btn-down" aria-label="Move Backward" class="touch-btn w-14 h-14 glass-panel rounded-2xl flex items-center justify-center text-xl text-amber-400 shadow-xl active:bg-amber-500/20">
+        <i class="fa-solid fa-chevron-down"></i>
+      </button>
+      <button id="btn-right" aria-label="Steer Right" class="touch-btn w-14 h-14 glass-panel rounded-2xl flex items-center justify-center text-xl text-amber-400 shadow-xl active:bg-amber-500/20">
+        <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Game Victory Modal Screen -->
+  <section id="win-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md hidden transition-opacity duration-300" aria-modal="true" role="dialog" aria-labelledby="modal-title">
+    <div class="glass-panel p-8 md:p-10 rounded-3xl max-w-md w-11/12 text-center shadow-2xl border border-amber-500/30 transform transition-all scale-95 opacity-0 duration-300" id="modal-card">
+      <!-- Trophy Icon Header -->
+      <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/30">
+        <i class="fa-solid fa-trophy text-slate-950 text-4xl"></i>
+      </div>
+      <h2 id="modal-title" class="text-3xl font-extrabold text-white mb-2">You Got Them All!</h2>
+      <p class="text-slate-300 mb-8 text-sm leading-relaxed">
+        Awesome job! You successfully collected all three floating gold coins around the arena.
+      </p>
+      <button id="btn-restart" class="w-full py-4 px-6 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-extrabold text-base rounded-2xl shadow-lg shadow-amber-500/20 transition-all duration-200 hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-amber-400/50 cursor-pointer">
+        <i class="fa-solid fa-rotate-right mr-2"></i> Play Again
+      </button>
+    </div>
+  </section>
+
+  <!-- Main Game Logic JavaScript Code -->
+  <script>
+    // Global Constants and Configuration Settings
+    const ARENA_SIZE = 24;          // Total length/width of the square floor arena
+    const MARBLE_RADIUS = 0.6;      // Radius of the player's rolling marble
+    const WALL_BOUND = (ARENA_SIZE / 2) - MARBLE_RADIUS - 0.2; // Bounding threshold to prevent rolling off
+    const TOTAL_COINS = 3;          // Number of coins required for victory
+    const FRICTION = 0.98;          // Velocity decay factor per frame
+    const ACCELERATION = 0.025;     // Speed added per frame when driving
+
+    // Game State Variables
+    let scene, camera, renderer;
+    let player, playerVelocity = new THREE.Vector3(0, 0, 0);
+    let coins = [];
+    let score = 0;
+    let isGameOver = false;
+
+    // Keyboard Input State Tracking
+    const keys = {
+      forward: false,
+      backward: false,
+      left: false,
+      right: false
+    };
+
+    // DOM Element References
+    const container = document.getElementById('canvas-container');
+    const scoreDisplay = document.getElementById('score-display');
+    const srAnnouncer = document.getElementById('sr-announcer');
+    const winModal = document.getElementById('win-modal');
+    const modalCard = document.getElementById('modal-card');
+    const btnRestart = document.getElementById('btn-restart');
+
+    /**
+     * Initializes the entire Three.js scene, camera, renderer, objects, and event listeners.
+     */
+    function init() {
+      // Create primary 3D Scene container
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0f172a); // Dark slate tone matching UI
+      scene.fog = new THREE.FogExp2(0x0f172a, 0.025); // Subtle depth fog
+
+      // Setup Perspective Camera viewing the floor from above at an angle
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 18, 16);
+      camera.lookAt(0, 0, 1);
+
+      // Setup WebGL Renderer with anti-aliasing and soft shadows
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Create Lighting Environment
+      setupLighting();
+
+      // Build Environment (Floor, Decorative Borders, and Outer Grid)
+      buildEnvironment();
+
+      // Spawn Player Marble
+      createPlayer();
+
+      // Spawn Coins around the floor
+      spawnCoins();
+
+      // Setup Event Listeners for inputs and window resizing
+      setupEventListeners();
+
+      // Start main animation loop
+      animate();
+    }
+
+    /**
+     * Sets up ambient and directional light sources for clear 3D depth and shadows.
+     */
+    function setupLighting() {
+      // Soft ambient fill light
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
+      scene.add(ambientLight);
+
+      // Primary directional sun light casting shadows
+      const dirLight = new THREE.DirectionalLight(0xfff7ed, 0.85);
+      dirLight.position.set(12, 20, 10);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 0.5;
+      dirLight.shadow.camera.far = 50;
+      
+      const shadowDist = 16;
+      dirLight.shadow.camera.left = -shadowDist;
+      dirLight.shadow.camera.right = shadowDist;
+      dirLight.shadow.camera.top = shadowDist;
+      dirLight.shadow.camera.bottom = -shadowDist;
+      scene.add(dirLight);
+
+      // Soft blue accent point light in the center for visual pop
+      const pointLight = new THREE.PointLight(0x38bdf8, 0.5, 30);
+      pointLight.position.set(0, 8, 0);
+      scene.add(pointLight);
+    }
+
+    /**
+     * Constructs the floor arena, border rails, and decorative grid lines.
+     */
+    function buildEnvironment() {
+      // Create main flat floor mesh
+      const floorGeo = new THREE.BoxGeometry(ARENA_SIZE, 0.4, ARENA_SIZE);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x1e293b, // Dark slate floor color
+        roughness: 0.4,
+        metalness: 0.1
+      });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.position.y = -0.2; // Sit slightly below origin plane
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Create stylish decorative tile grid pattern on the floor
+      const grid = new THREE.GridHelper(ARENA_SIZE, 12, 0x38bdf8, 0x334155);
+      grid.position.y = 0.01;
+      scene.add(grid);
+
+      // Create glowing border boundaries (Visual indication of the wall edge)
+      const borderMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.2, metalness: 0.8 });
+      const borderThickness = 0.3;
+      const borderHeight = 0.4;
+
+      const halfSize = ARENA_SIZE / 2;
+      const wallConfigs = [
+        { size: [ARENA_SIZE, borderHeight, borderThickness], pos: [0, borderHeight / 2, -halfSize] },
+        { size: [ARENA_SIZE, borderHeight, borderThickness], pos: [0, borderHeight / 2, halfSize] },
+        { size: [borderThickness, borderHeight, ARENA_SIZE], pos: [-halfSize, borderHeight / 2, 0] },
+        { size: [borderThickness, borderHeight, ARENA_SIZE], pos: [halfSize, borderHeight / 2, 0] }
+      ];
+
+      wallConfigs.forEach(config => {
+        const wallGeo = new THREE.BoxGeometry(...config.size);
+        const wall = new THREE.Mesh(wallGeo, borderMat);
+        wall.position.set(...config.pos);
+        wall.castShadow = true;
+        wall.receiveShadow = true;
+        scene.add(wall);
+      });
+    }
+
+    /**
+     * Creates the player marble mesh with shiny chrome-like material properties.
+     */
+    function createPlayer() {
+      const geo = new THREE.SphereGeometry(MARBLE_RADIUS, 32, 32);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,     // Bright cyan marble
+        metalness: 0.8,
+        roughness: 0.15,
+        wireframe: false
+      });
+
+      player = new THREE.Mesh(geo, mat);
+      player.position.set(0, MARBLE_RADIUS, 0); // Place right on floor surface
+      player.castShadow = true;
+      player.receiveShadow = true;
+      scene.add(player);
+    }
+
+    /**
+     * Spawns floating gold coins at three distinct preset locations around the arena.
+     */
+    function spawnCoins() {
+      // Positions distributed in different quadrants
+      const coinPositions = [
+        new THREE.Vector3(-6, 0.8, -5),
+        new THREE.Vector3(6, 0.8, -4),
+        new THREE.Vector3(0, 0.8, 6)
+      ];
+
+      // Cylinder geometry shaped like a coin
+      const coinGeo = new THREE.CylinderGeometry(0.7, 0.7, 0.15, 24);
+      const coinMat = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b, // Bright gold color
+        metalness: 0.9,
+        roughness: 0.2
+      });
+
+      coinPositions.forEach((pos, index) => {
+        const coinContainer = new THREE.Group();
+
+        const coinMesh = new THREE.Mesh(coinGeo, coinMat);
+        coinMesh.rotation.x = Math.PI / 2; // Orient vertically
+        coinMesh.castShadow = true;
+        coinContainer.add(coinMesh);
+
+        coinContainer.position.copy(pos);
+        scene.add(coinContainer);
+
+        // Store coin reference and initial hover parameters for animation
+        coins.push({
+          mesh: coinContainer,
+          baseY: pos.y,
+          collected: false,
+          id: index
+        });
+      });
+    }
+
+    /**
+     * Configures event listeners for user input, resize events, and accessibility buttons.
+     */
+    function setupEventListeners() {
+      // Keyboard input listeners
+      window.addEventListener('keydown', (e) => handleKey(e, true));
+      window.addEventListener('keyup', (e) => handleKey(e, false));
+
+      // Window resize listener
+      window.addEventListener('resize', onWindowResize);
+
+      // Restart button click
+      btnRestart.addEventListener('click', restartGame);
+
+      // Touch controls binding
+      bindTouchControl('btn-up', 'forward');
+      bindTouchControl('btn-down', 'backward');
+      bindTouchControl('btn-left', 'left');
+      bindTouchControl('btn-right', 'right');
+    }
+
+    /**
+     * Helper function to bind mouse/touch press events to input directions.
+     */
+    function bindTouchControl(elementId, keyDirection) {
+      const btn = document.getElementById(elementId);
+      if (!btn) return;
+
+      const setKey = (val) => { keys[keyDirection] = val; };
+
+      btn.addEventListener('touchstart', (e) => { e.preventDefault(); setKey(true); }, { passive: false });
+      btn.addEventListener('touchend', (e) => { e.preventDefault(); setKey(false); }, { passive: false });
+      btn.addEventListener('mousedown', () => setKey(true));
+      btn.addEventListener('mouseup', () => setKey(false));
+      btn.addEventListener('mouseleave', () => setKey(false));
+    }
+
+    /**
+     * Translates keypress events into player direction states.
+     */
+    function handleKey(event, isPressed) {
+      if (isGameOver && isPressed && event.key === 'Enter') {
+        restartGame();
+        return;
+      }
+
+      switch (event.code) {
+        case 'KeyW':
+        case 'ArrowUp':
+          keys.forward = isPressed;
+          break;
+        case 'KeyS':
+        case 'ArrowDown':
+          keys.backward = isPressed;
+          break;
+        case 'KeyA':
+        case 'ArrowLeft':
+          keys.left = isPressed;
+          break;
+        case 'KeyD':
+        case 'ArrowRight':
+          keys.right = isPressed;
+          break;
+      }
+    }
+
+    /**
+     * Main animation loop updating physics, coin animations, camera, and scene render.
+     */
+    function animate() {
+      requestAnimationFrame(animate);
+
+      if (!isGameOver) {
+        updatePhysics();
+        updateCoinsAnimation();
+        checkCoinCollisions();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    /**
+     * Calculates marble acceleration, friction decay, edge clamping, and rotational rolling visuals.
+     */
+    function updatePhysics() {
+      // Calculate movement vector from key states
+      const moveDir = new THREE.Vector3(0, 0, 0);
+
+      if (keys.forward) moveDir.z -= 1;
+      if (keys.backward) moveDir.z += 1;
+      if (keys.left) moveDir.x -= 1;
+      if (keys.right) moveDir.x += 1;
+
+      // Normalize diagonal speeds
+      if (moveDir.lengthSq() > 0) {
+        moveDir.normalize();
+        playerVelocity.x += moveDir.x * ACCELERATION;
+        playerVelocity.z += moveDir.z * ACCELERATION;
+      }
+
+      // Apply friction damping
+      playerVelocity.x *= FRICTION;
+      playerVelocity.z *= FRICTION;
+
+      // Update marble position
+      player.position.x += playerVelocity.x;
+      player.position.z += playerVelocity.z;
+
+      // Hard Boundary Clamp: Prevents marble from rolling off the floor edge
+      if (player.position.x < -WALL_BOUND) {
+        player.position.x = -WALL_BOUND;
+        playerVelocity.x *= -0.3; // Gentle bounce off wall
+      } else if (player.position.x > WALL_BOUND) {
+        player.position.x = WALL_BOUND;
+        playerVelocity.x *= -0.3;
+      }
+
+      if (player.position.z < -WALL_BOUND) {
+        player.position.z = -WALL_BOUND;
+        playerVelocity.z *= -0.3;
+      } else if (player.position.z > WALL_BOUND) {
+        player.position.z = WALL_BOUND;
+        playerVelocity.z *= -0.3;
+      }
+
+      // Visual ball rolling rotation matching distance traveled
+      const speed = Math.sqrt(playerVelocity.x * playerVelocity.x + playerVelocity.z * playerVelocity.z);
+      if (speed > 0.001) {
+        const rotationAxis = new THREE.Vector3(-playerVelocity.z, 0, playerVelocity.x).normalize();
+        const angle = speed / MARBLE_RADIUS;
+        player.rotateOnWorldAxis(rotationAxis, angle);
+      }
+    }
+
+    /**
+     * Animates floating bobbing and spinning gold coins.
+     */
+    function updateCoinsAnimation() {
+      const time = Date.now() * 0.003;
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          // Continuous spinning
+          coin.mesh.rotation.y += 0.03;
+          // Smooth up and down bobbing float motion
+          coin.mesh.position.y = coin.baseY + Math.sin(time + coin.id * 2) * 0.15;
+        }
+      });
+    }
+
+    /**
+     * Detects marble distance to coins and handles collection events.
+     */
+    function checkCoinCollisions() {
+      const collectDistance = MARBLE_RADIUS + 0.7; // Radius of marble + coin size threshold
+
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          const dist = player.position.distanceTo(coin.mesh.position);
+          if (dist < collectDistance) {
+            collectCoin(coin);
+          }
+        }
+      });
+    }
+
+    /**
+     * Handles score increments, coin removal, accessible announcements, and win conditions.
+     */
+    function collectCoin(coin) {
+      coin.collected = true;
+      scene.remove(coin.mesh);
+
+      score++;
+      scoreDisplay.textContent = `${score} / ${TOTAL_COINS}`;
+
+      // Speak out score changes for screen reader accessibility
+      const announcement = `Score: ${score}`;
+      announceToScreenReader(announcement);
+
+      // Check for victory condition
+      if (score >= TOTAL_COINS) {
+        triggerWinState();
+      }
+    }
+
+    /**
+     * Sends voice/text notifications to ARIA live region for screen readers.
+     */
+    function announceToScreenReader(message) {
+      srAnnouncer.textContent = message;
+    }
+
+    /**
+     * Triggers the victory overlay and updates accessible screen reader updates.
+     */
+    function triggerWinState() {
+      isGameOver = true;
+
+      // Announce win aloud to screen readers
+      announceToScreenReader("You got them all!");
+
+      // Display Win Modal overlay with scale transition
+      winModal.classList.remove('hidden');
+      setTimeout(() => {
+        modalCard.classList.remove('scale-95', 'opacity-0');
+        modalCard.classList.add('scale-100', 'opacity-100');
+        btnRestart.focus(); // Shift keyboard focus to action button
+      }, 50);
+    }
+
+    /**
+     * Resets game state, player position, score, and re-spawns collected coins.
+     */
+    function restartGame() {
+      // Hide victory modal
+      modalCard.classList.remove('scale-100', 'opacity-100');
+      modalCard.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        winModal.classList.add('hidden');
+      }, 300);
+
+      // Reset score and HUD
+      score = 0;
+      scoreDisplay.textContent = `0 / ${TOTAL_COINS}`;
+      announceToScreenReader("Game restarted. Score: 0");
+
+      // Reset Player position and momentum
+      player.position.set(0, MARBLE_RADIUS, 0);
+      playerVelocity.set(0, 0, 0);
+
+      // Remove remaining/old coin meshes
+      coins.forEach(coin => {
+        if (!coin.collected) {
+          scene.remove(coin.mesh);
+        }
+      });
+      coins = [];
+
+      // Re-spawn new coins
+      spawnCoins();
+
+      // Clear control key flags
+      Object.keys(keys).forEach(k => keys[k] = false);
+
+      // Enable game updates loop
+      isGameOver = false;
+    }
+
+    /**
+     * Maintains responsive 3D viewport dimensions when window size changes.
+     */
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Launch game on initial window load
+    window.onload = init;
+  </script>
+</body>
+</html>
