@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  PDF Toolkit - merge PDFs in your chosen order and stamp every page
+  ============================================================================
+  v1.0 - initial build: add PDFs by button or drag-and-drop, list them with
+         page counts, reorder/remove, merge with a stamp, download one PDF.
+
+  LIBRARIES (loaded in the browser, pinned to an exact version):
+
+  1. pdf-lib  v1.17.1
+     Source : jsDelivr CDN (npm package "pdf-lib")
+              https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js
+     Purpose: Reads PDF files, counts their pages, copies pages from several
+              PDFs into one new PDF, draws the stamp text on each page, and
+              saves the finished PDF.
+
+  PRIVACY: Your PDFs are read and merged entirely inside this browser tab.
+  Nothing is uploaded. The only network request is the one-time download of
+  the pdf-lib library above.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Toolkit: Merge and Stamp</title>
+
+  <style>
+    /* ------------------------------------------------------------------
+       Design tokens: colours, sizes and fonts in one place.
+       A dark version is swapped in automatically when the device is set
+       to dark mode.
+       ------------------------------------------------------------------ */
+    :root {
+      --bg: #f4efe6;           /* warm paper background */
+      --card: #fffdf8;         /* slightly brighter panels */
+      --ink: #1c2333;          /* main text */
+      --ink-soft: #4d556a;     /* secondary text */
+      --line: #d9d0bf;         /* borders */
+      --accent: #b52a17;       /* stamp red: primary buttons */
+      --accent-ink: #ffffff;   /* text on the accent colour */
+      --drop-bg: #fbf3e4;      /* drop area fill */
+      --focus: #0b5fff;        /* keyboard focus ring */
+      --error-bg: #fde8e4;
+      --error-ink: #7a1a0c;
+      --ok-ink: #1d5c2e;
+      --radius: 14px;
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #14171f;
+        --card: #1d212c;
+        --ink: #f1ece0;
+        --ink-soft: #b4b9c8;
+        --line: #343a4b;
+        --accent: #e0553f;
+        --accent-ink: #14171f;
+        --drop-bg: #232838;
+        --focus: #8ab4ff;
+        --error-bg: #3b1d19;
+        --error-ink: #ffb9ad;
+        --ok-ink: #8fd6a2;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.5;
+      /* Keep content clear of phone notches. */
+      padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+    }
+
+    .page { max-width: 760px; margin: 0 auto; }
+
+    /* ---------- Header ---------- */
+    header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(1.9rem, 6vw, 2.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+    }
+
+    /* Decorative rubber-stamp badge (hidden from screen readers in the HTML). */
+    .badge {
+      font-family: var(--serif);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 3px double var(--accent);
+      border-radius: 6px;
+      padding: 2px 10px;
+      transform: rotate(-6deg);
+      opacity: 0.9;
+    }
+
+    .lede { margin: 4px 0 20px; color: var(--ink-soft); }
+
+    /* The privacy line stands out with a little padlock-free, plain checkmark style. */
+    .privacy {
+      display: inline-block;
+      margin: 0 0 22px;
+      padding: 6px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+      color: var(--ok-ink);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    h2 { font-family: var(--serif); font-size: 1.3rem; margin: 0 0 10px; }
+
+    section.panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    /* ---------- Buttons ---------- */
+    button {
+      font: inherit;
+      font-weight: 600;
+      min-height: 44px;            /* comfortable touch target */
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: 2px solid var(--ink);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: var(--drop-bg); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+    }
+    button.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+
+    /* Very visible keyboard focus on everything interactive. */
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    /* ---------- Drop area ---------- */
+    .dropzone {
+      border: 2px dashed var(--ink-soft);
+      border-radius: var(--radius);
+      background: var(--drop-bg);
+      padding: 28px 16px;
+      text-align: center;
+    }
+    .dropzone p { margin: 0 0 12px; color: var(--ink-soft); }
+
+    /* While files are dragged over the window the drop area lights up. */
+    body.dragging .dropzone {
+      border-color: var(--accent);
+      background: var(--card);
+      outline: 3px solid var(--accent);
+    }
+
+    /* ---------- File list ---------- */
+    .summary { margin: 0 0 10px; color: var(--ink-soft); font-size: 0.95rem; }
+
+    ol.files { list-style: none; margin: 0; padding: 0; counter-reset: file; }
+
+    li.file {
+      counter-increment: file;
+      display: flex;
+      flex-wrap: wrap;                 /* buttons wrap under the name on narrow screens */
+      align-items: center;
+      gap: 10px 14px;
+      padding: 12px;
+      margin-bottom: 8px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--bg);
+    }
+
+    /* Visible position number in front of each file. */
+    li.file::before {
+      content: counter(file);
+      flex: none;
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--bg);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .file-info { flex: 1 1 200px; min-width: 0; }
+    .file-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
+    .file-meta { color: var(--ink-soft); font-size: 0.9rem; }
+
+    .file-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .file-actions button { min-width: 44px; padding: 6px 12px; }
+
+    .empty { margin: 0; color: var(--ink-soft); }
+
+    /* ---------- Stamp box ---------- */
+    label { display: block; font-weight: 600; margin-bottom: 4px; }
+    .hint { margin: 0 0 8px; color: var(--ink-soft); font-size: 0.92rem; }
+
+    input[type="text"] {
+      width: 100%;
+      min-height: 46px;
+      padding: 8px 12px;
+      font: inherit;
+      color: var(--ink);
+      background: var(--bg);
+      border: 2px solid var(--line);
+      border-radius: 10px;
+    }
+
+    /* ---------- Messages ---------- */
+    .msg { margin: 12px 0 0; min-height: 1.5em; font-weight: 600; }
+    .msg.error {
+      background: var(--error-bg);
+      color: var(--error-ink);
+      padding: 10px 14px;
+      border-radius: 10px;
+    }
+    .msg:empty { display: none; }
+
+    .merge-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+    .merge-row button { flex: 1 1 220px; font-size: 1.1rem; min-height: 54px; }
+
+    /* Full-screen hint shown while dragging files over the page. */
+    .drop-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(181, 42, 23, 0.14);
+      border: 4px dashed var(--accent);
+      font-family: var(--serif);
+      font-size: clamp(1.4rem, 5vw, 2.2rem);
+      font-weight: 700;
+      color: var(--accent);
+      pointer-events: none;     /* never blocks the drop itself */
+      z-index: 10;
+    }
+    body.dragging .drop-overlay { display: grid; }
+
+    [hidden] { display: none !important; }
+
+    /* Visible to screen readers only. */
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <header>
+      <h1>PDF Toolkit</h1>
+      <span class="badge" aria-hidden="true">Merge &amp; Stamp</span>
+    </header>
+
+    <p class="lede">Combine several PDFs into one, in the order you choose, with a small stamp on every page.</p>
+    <p class="privacy">Your files never leave this computer.</p>
+
+    <main>
+      <!-- STEP 1: add files -->
+      <section class="panel" aria-labelledby="addHeading">
+        <h2 id="addHeading">1. Add PDF files</h2>
+        <div class="dropzone" id="dropzone">
+          <p>Drag PDF files anywhere onto this page, or use the button.</p>
+          <button type="button" class="primary" id="chooseBtn">Choose PDF files</button>
+          <!-- The real file picker is hidden; the button above opens it. -->
+          <input type="file" id="fileInput" accept="application/pdf,.pdf" multiple hidden>
+        </div>
+      </section>
+
+      <!-- STEP 2: order the files -->
+      <section class="panel" aria-labelledby="listHeading">
+        <h2 id="listHeading">2. Put them in order</h2>
+        <p class="summary" id="summary"></p>
+        <p class="empty" id="emptyNote">No files yet. The first file in the list becomes the first pages of the result.</p>
+        <ol class="files" id="fileList" aria-labelledby="listHeading"></ol>
+      </section>
+
+      <!-- STEP 3: stamp and merge -->
+      <section class="panel" aria-labelledby="mergeHeading">
+        <h2 id="mergeHeading">3. Stamp and merge</h2>
+        <label for="stampInput">Stamp text (optional)</label>
+        <p class="hint" id="stampHint">A word or short phrase, printed in small letters in the bottom-right corner of every page.</p>
+        <input type="text" id="stampInput" maxlength="60" autocomplete="off"
+               placeholder="For example: CONFIDENTIAL" aria-describedby="stampHint">
+
+        <div class="merge-row">
+          <button type="button" class="primary" id="mergeBtn" disabled>Merge, stamp and download</button>
+        </div>
+
+        <!-- Friendly progress and success messages (read aloud politely). -->
+        <p class="msg" id="statusMsg" role="status" aria-live="polite"></p>
+        <!-- Problems (read aloud right away). -->
+        <p class="msg error" id="errorMsg" role="alert"></p>
+      </section>
+    </main>
+  </div>
+
+  <!-- Shown while dragging files over the window. Decorative only. -->
+  <div class="drop-overlay" aria-hidden="true">Drop PDF files to add them</div>
+
+  <!-- The pdf-lib library (pinned to exact version 1.17.1). -->
+  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <script>
+  (() => {
+    'use strict';
+    // v1.0 - initial build
+
+    /* =====================================================================
+       SECTION 1: SETTINGS
+       Easy-to-change numbers for how the stamp looks.
+       ===================================================================== */
+    const STAMP_FONT_SIZE = 9;      // size of the stamp letters, in PDF points (small)
+    const STAMP_MARGIN = 18;        // gap from the page edges, in PDF points
+    const STAMP_GRAY = 0.35;        // 0 = black, 1 = white; a medium dark grey
+    const OUTPUT_NAME = 'merged.pdf';
+
+    /* =====================================================================
+       SECTION 2: PAGE ELEMENTS
+       Look up every element we need, once, at the start.
+       ===================================================================== */
+    const chooseBtn  = document.getElementById('chooseBtn');
+    const fileInput  = document.getElementById('fileInput');
+    const fileList   = document.getElementById('fileList');
+    const emptyNote  = document.getElementById('emptyNote');
+    const summary    = document.getElementById('summary');
+    const stampInput = document.getElementById('stampInput');
+    const mergeBtn   = document.getElementById('mergeBtn');
+    const statusMsg  = document.getElementById('statusMsg');
+    const errorMsg   = document.getElementById('errorMsg');
+
+    /* =====================================================================
+       SECTION 3: APP STATE
+       "files" is the ordered list of PDFs the person added. Each entry is
+       { id, name, size, pages, bytes } where bytes holds the file's data
+       in memory (never uploaded).
+       ===================================================================== */
+    let files = [];
+    let nextId = 1;        // gives every added file its own id
+    let busy = false;      // true while a merge or a file read is running
+
+    // Make sure the library really loaded before anything else happens.
+    if (typeof window.PDFLib === 'undefined') {
+      showError('The PDF library could not be loaded. Check your internet connection and reload the page.');
+      chooseBtn.disabled = true;
+      return;
+    }
+    const { PDFDocument, StandardFonts, rgb, degrees } = window.PDFLib;
+
+    /* =====================================================================
+       SECTION 4: MESSAGE HELPERS
+       Status = calm updates. Error = problems. Only one shows at a time.
+       ===================================================================== */
+    function showStatus(text) {
+      errorMsg.textContent = '';
+      statusMsg.textContent = text;
+    }
+    function showError(text) {
+      statusMsg.textContent = '';
+      errorMsg.textContent = text;
+    }
+
+    // Small helpers for friendly wording.
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+    // Turns a byte count into text like "1.4 MB".
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    /* =====================================================================
+       SECTION 5: ADDING FILES
+       Used by the button AND by drag-and-drop.
+       ===================================================================== */
+
+    // True if the file looks like a PDF (by its type or its name ending).
+    function looksLikePdf(file) {
+      return file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    }
+
+    // Reads each chosen file, counts its pages, and adds it to the list.
+    async function addFiles(fileCollection) {
+      if (busy) return;                                   // ignore drops during a merge
+      const incoming = Array.from(fileCollection);
+      const pdfs = incoming.filter(looksLikePdf);
+      const skippedNonPdf = incoming.length - pdfs.length;
+
+      if (pdfs.length === 0) {
+        showError('Those files are not PDFs. Please choose files ending in .pdf.');
+        return;
+      }
+
+      setBusy(true);
+      showStatus(`Reading ${plural(pdfs.length, 'file')}…`);
+
+      const problems = [];       // names of files that could not be used
+      let added = 0;
+
+      for (const file of pdfs) {
+        try {
+          const bytes = new Uint8Array(await file.arrayBuffer());
+          // Loading the PDF is how we learn how many pages it has.
+          const doc = await PDFDocument.load(bytes, { updateMetadata: false });
+          files.push({
+            id: nextId++,
+            name: file.name,
+            size: file.size,
+            pages: doc.getPageCount(),
+            bytes
+          });
+          added++;
+        } catch (err) {
+          // Password-protected PDFs cannot be merged by pdf-lib.
+          const locked = err && /encrypted/i.test(String(err.message));
+          problems.push(locked ? `${file.name} (password-protected)` : `${file.name} (could not be read)`);
+        }
+      }
+
+      setBusy(false);
+      render();
+
+      // Report what happened.
+      let message = added > 0 ? `Added ${plural(added, 'file')}.` : '';
+      if (skippedNonPdf > 0) message += ` Skipped ${plural(skippedNonPdf, 'file')} that ${skippedNonPdf === 1 ? 'is' : 'are'} not PDF.`;
+      if (problems.length > 0) {
+        showError(`${message} Could not use: ${problems.join(', ')}.`.trim());
+      } else {
+        showStatus(message.trim());
+      }
+    }
+
+    /* =====================================================================
+       SECTION 6: DRAWING THE FILE LIST
+       Rebuilds the list from "files". Optionally puts keyboard focus back
+       on a button so keyboard users don't lose their place.
+       ===================================================================== */
+    function render(focus) {
+      fileList.textContent = '';                          // clear the old list
+
+      files.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = 'file';
+        li.dataset.id = String(file.id);
+
+        // Name and details (textContent keeps odd file names safe).
+        const info = document.createElement('div');
+        info.className = 'file-info';
+        const name = document.createElement('span');
+        name.className = 'file-name';
+        name.textContent = file.name;
+        const meta = document.createElement('span');
+        meta.className = 'file-meta';
+        meta.textContent = `${plural(file.pages, 'page')} · ${formatBytes(file.size)}`;
+        info.append(name, meta);
+
+        // Up / Down / Remove buttons, each labelled with the file name.
+        const actions = document.createElement('div');
+        actions.className = 'file-actions';
+        actions.setAttribute('role', 'group');
+        actions.setAttribute('aria-label', `Actions for ${file.name}`);
+
+        const up = makeActionButton('up', '↑', 'Up', `Move ${file.name} up`);
+        up.disabled = index === 0;                        // first file can't go higher
+        const down = makeActionButton('down', '↓', 'Down', `Move ${file.name} down`);
+        down.disabled = index === files.length - 1;       // last file can't go lower
+        const remove = makeActionButton('remove', '✕', 'Remove', `Remove ${file.name}`);
+
+        actions.append(up, down, remove);
+        li.append(info, actions);
+        fileList.append(li);
+      });
+
+      // Summary line and empty-state note.
+      const totalPages = files.reduce((sum, f) => sum + f.pages, 0);
+      summary.textContent = files.length
+        ? `${plural(files.length, 'file')}, ${plural(totalPages, 'page')} in total`
+        : '';
+      emptyNote.hidden = files.length > 0;
+      mergeBtn.disabled = busy || files.length === 0;
+
+      // Give keyboard focus back to a sensible button.
+      if (focus) restoreFocus(focus);
+    }
+
+    // Builds one small action button (arrow/cross + visible word + full spoken label).
+    function makeActionButton(action, symbol, word, spokenLabel) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.action = action;
+      btn.setAttribute('aria-label', spokenLabel);
+      btn.innerHTML = `<span aria-hidden="true">${symbol}</span> ${word}`;
+      return btn;
+    }
+
+    // Moves keyboard focus to the requested button after the list is rebuilt.
+    function restoreFocus({ id, action, fallback }) {
+      const target = fileList.querySelector(`li[data-id="${id}"] button[data-action="${action}"]:not(:disabled)`)
+        || (fallback && fileList.querySelector(`li[data-id="${id}"] button[data-action="${fallback}"]:not(:disabled)`));
+      if (target) target.focus();
+    }
+
+    /* =====================================================================
+       SECTION 7: MOVING AND REMOVING FILES
+       One click listener on the whole list handles every button inside it.
+       ===================================================================== */
+    fileList.addEventListener('click', (event) => {
+      if (busy) return;
+      const btn = event.target.closest('button[data-action]');
+      if (!btn) return;
+
+      const li = btn.closest('li');
+      const id = Number(li.dataset.id);
+      const index = files.findIndex((f) => f.id === id);
+      if (index < 0) return;
+      const name = files[index].name;
+      const action = btn.dataset.action;
+
+      if (action === 'up' && index > 0) {
+        // Swap with the file above.
+        [files[index - 1], files[index]] = [files[index], files[index - 1]];
+        render({ id, action: 'up', fallback: 'down' });
+        showStatus(`Moved ${name} up to position ${index} of ${files.length}.`);
+      } else if (action === 'down' && index < files.length - 1) {
+        // Swap with the file below.
+        [files[index + 1], files[index]] = [files[index], files[index + 1]];
+        render({ id, action: 'down', fallback: 'up' });
+        showStatus(`Moved ${name} down to position ${index + 2} of ${files.length}.`);
+      } else if (action === 'remove') {
+        files.splice(index, 1);
+        // Focus the file that took this spot, else the one before, else the "Choose" button.
+        const neighbour = files[index] || files[index - 1];
+        render(neighbour ? { id: neighbour.id, action: 'remove' } : null);
+        if (!neighbour) chooseBtn.focus();
+        showStatus(`Removed ${name}. ${plural(files.length, 'file')} left.`);
+      }
+    });
+
+    /* =====================================================================
+       SECTION 8: CHOOSING FILES WITH THE BUTTON
+       ===================================================================== */
+    chooseBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', async () => {
+      await addFiles(fileInput.files);
+      fileInput.value = '';        // lets the same file be chosen again later
+    });
+
+    /* =====================================================================
+       SECTION 9: DRAG AND DROP (works anywhere on the page)
+       ===================================================================== */
+    let dragDepth = 0;             // counts enter/leave pairs so the highlight doesn't flicker
+
+    // True only when the thing being dragged contains files (not selected text, etc.).
+    const dragHasFiles = (event) =>
+      event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+
+    window.addEventListener('dragenter', (event) => {
+      if (!dragHasFiles(event)) return;
+      event.preventDefault();
+      dragDepth++;
+      document.body.classList.add('dragging');
+    });
+
+    window.addEventListener('dragover', (event) => {
+      if (!dragHasFiles(event)) return;
+      event.preventDefault();                              // required to allow dropping
+      event.dataTransfer.dropEffect = 'copy';
+    });
+
+    window.addEventListener('dragleave', (event) => {
+      if (!dragHasFiles(event)) return;
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) document.body.classList.remove('dragging');
+    });
+
+    window.addEventListener('drop', (event) => {
+      if (!dragHasFiles(event)) return;
+      event.preventDefault();                              // stops the browser opening the PDF itself
+      dragDepth = 0;
+      document.body.classList.remove('dragging');
+      addFiles(event.dataTransfer.files);
+    });
+
+    /* =====================================================================
+       SECTION 10: BUSY STATE
+       Locks the controls while work is happening.
+       ===================================================================== */
+    function setBusy(isBusy) {
+      busy = isBusy;
+      chooseBtn.disabled = isBusy;
+      mergeBtn.disabled = isBusy || files.length === 0;
+      mergeBtn.setAttribute('aria-busy', String(isBusy));
+      document.body.style.cursor = isBusy ? 'progress' : '';
+    }
+
+    // Lets the browser repaint (so messages and button states update) between heavy steps.
+    const pause = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    /* =====================================================================
+       SECTION 11: STAMPING ONE PAGE
+       Writes the stamp in the visual bottom-right corner, even if the page
+       is rotated (scanned pages often are) or has a shifted visible area.
+       ===================================================================== */
+    function stampPage(page, text, font) {
+      const box = page.getCropBox();                       // the visible area: { x, y, width, height }
+      const textWidth = font.widthOfTextAtSize(text, STAMP_FONT_SIZE);
+      const m = STAMP_MARGIN;
+      const { x, y, width: w, height: h } = box;
+
+      // The page's display rotation, forced to 0, 90, 180 or 270.
+      const raw = page.getRotation().angle;
+      const angle = ((Math.round(raw / 90) * 90) % 360 + 360) % 360;
+
+      // Where the text starts (its bottom-left baseline point) so that, once the
+      // page is displayed, the text reads upright and ends m points from the
+      // visual bottom-right corner.
+      let startX, startY;
+      if (angle === 0) {
+        startX = x + w - m - textWidth;  startY = y + m;
+      } else if (angle === 90) {
+        startX = x + w - m;              startY = y + h - m - textWidth;
+      } else if (angle === 180) {
+        startX = x + m + textWidth;      startY = y + h - m;
+      } else {
+        startX = x + m;                  startY = y + m + textWidth;
+      }
+
+      page.drawText(text, {
+        x: startX,
+        y: startY,
+        size: STAMP_FONT_SIZE,
+        font,
+        color: rgb(STAMP_GRAY, STAMP_GRAY, STAMP_GRAY),
+        rotate: degrees(angle)                             // turn the text with the page so it looks upright
+      });
+    }
+
+    /* =====================================================================
+       SECTION 12: MERGE, STAMP AND DOWNLOAD
+       ===================================================================== */
+    async function mergeAndDownload() {
+      if (busy || files.length === 0) return;
+
+      // Tidy the stamp: collapse stray spaces/line breaks.
+      const stamp = stampInput.value.replace(/\s+/g, ' ').trim();
+
+      setBusy(true);
+      try {
+        // Start a brand-new empty PDF that will hold everything.
+        const merged = await PDFDocument.create();
+
+        // Copy every page of every file, in list order.
+        for (let i = 0; i < files.length; i++) {
+          showStatus(`Merging file ${i + 1} of ${files.length}: ${files[i].name}…`);
+          await pause();
+          const source = await PDFDocument.load(files[i].bytes, { updateMetadata: false });
+          const copied = await merged.copyPages(source, source.getPageIndices());
+          copied.forEach((page) => merged.addPage(page));
+        }
+
+        // Add the stamp to every page of the merged result.
+        if (stamp) {
+          showStatus('Adding the stamp…');
+          await pause();
+          const font = await merged.embedFont(StandardFonts.Helvetica);
+
+          // The built-in font only knows basic Latin letters; check before drawing.
+          try {
+            font.encodeText(stamp);
+          } catch (e) {
+            throw new Error('STAMP_CHARS');
+          }
+
+          merged.getPages().forEach((page) => stampPage(page, stamp, font));
+        }
+
+        // Turn the finished PDF into bytes and offer it as a download.
+        showStatus('Saving…');
+        await pause();
+        const outBytes = await merged.save();
+        downloadBytes(outBytes, OUTPUT_NAME);
+
+        showStatus(`Done. Downloaded ${OUTPUT_NAME} with ${plural(merged.getPageCount(), 'page')}.`);
+      } catch (err) {
+        if (err && err.message === 'STAMP_CHARS') {
+          showError('The stamp contains characters the PDF font cannot draw. Use letters, numbers and common punctuation (no emoji or non-Latin scripts).');
+          stampInput.focus();
+        } else {
+          console.error(err);
+          showError('Something went wrong while merging. One of the files may be damaged. Try removing files one at a time.');
+        }
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    // Saves bytes as a file using a temporary download link (all inside the browser).
+    function downloadBytes(bytes, filename) {
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);   // free the memory a minute later
+    }
+
+    mergeBtn.addEventListener('click', mergeAndDownload);
+
+    // Pressing Enter inside the stamp box also starts the merge.
+    stampInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); mergeAndDownload(); }
+    });
+
+    // First draw of the (empty) list.
+    render();
+  })();
+  </script>
+</body>
+</html>
