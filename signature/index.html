@@ -1,0 +1,424 @@
+from pathlib import Path
+
+html = r'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f6f8">
+  <title>Signature Pad</title>
+  <!--
+    Libraries: None.
+    This app uses browser-native HTML, CSS, Canvas 2D, and Pointer Events.
+    Version: v1.0 - initial build
+  -->
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202a35;
+      --muted: #657384;
+      --accent: #1769aa;
+      --border: #d5dde5;
+      --surface: #ffffff;
+      --page: #f4f6f8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: clamp(16px, 4vw, 40px);
+      background: var(--page);
+      color: var(--ink);
+      font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { width: min(100%, 980px); margin: 0 auto; }
+    h1 { margin: 0 0 6px; font-size: clamp(1.7rem, 4vw, 2.35rem); }
+    .intro { margin: 0 0 24px; color: var(--muted); }
+    .panel {
+      padding: clamp(14px, 3vw, 24px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: 0 8px 28px rgb(24 39 56 / 7%);
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 14px 18px;
+      margin-bottom: 16px;
+    }
+    .control { display: grid; gap: 5px; }
+    label, .control-label { font-size: .9rem; font-weight: 650; }
+    input[type="color"] {
+      width: 54px; height: 40px; padding: 3px;
+      border: 1px solid var(--border); border-radius: 9px; background: white;
+      cursor: pointer;
+    }
+    input[type="range"] { width: 150px; accent-color: var(--accent); }
+    output { color: var(--muted); font-size: .88rem; font-variant-numeric: tabular-nums; }
+    .canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #b9c5d1;
+      border-radius: 12px;
+      background-color: white;
+      background-image:
+        linear-gradient(45deg, #e3e8ed 25%, transparent 25%),
+        linear-gradient(-45deg, #e3e8ed 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e3e8ed 75%),
+        linear-gradient(-45deg, transparent 75%, #e3e8ed 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: clamp(220px, 42vw, 360px);
+      touch-action: none;
+      cursor: crosshair;
+      outline-offset: 4px;
+    }
+    canvas:focus-visible { outline: 3px solid var(--accent); }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    button {
+      min-height: 44px;
+      padding: 10px 17px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: #f0f5fa; border-color: #9eafbf; }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid #8bbce5; outline-offset: 2px;
+    }
+    button.primary { color: white; background: var(--accent); border-color: var(--accent); }
+    button.primary:hover:not(:disabled) { background: #10588f; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    .hint { margin: 13px 0 0; color: var(--muted); font-size: .88rem; }
+    .status { min-height: 1.4em; margin: 8px 0 0; color: #285d3c; font-size: .9rem; }
+    @media (max-width: 520px) {
+      body { padding: 14px; }
+      .toolbar { gap: 12px; }
+      .control.grow { flex: 1 1 100%; }
+      input[type="range"] { width: min(100%, 230px); }
+      .actions button { flex: 1 1 calc(50% - 10px); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Signature Pad</h1>
+    <p class="intro">Sign below with your mouse, stylus, or finger. Your signature stays on this device.</p>
+
+    <section class="panel" aria-label="Signature editor">
+      <div class="toolbar">
+        <div class="control">
+          <label for="inkColor">Ink color</label>
+          <input id="inkColor" type="color" value="#18324b">
+        </div>
+        <div class="control grow">
+          <label for="penWidth">Pen width <output id="widthValue" for="penWidth">3 px</output></label>
+          <input id="penWidth" type="range" min="1" max="14" step="0.5" value="3">
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="signatureCanvas" tabindex="0"
+          role="img" aria-label="Transparent signature drawing area. Draw here using a mouse, pen, or touch.">
+          Your browser does not support the HTML canvas element.
+        </canvas>
+      </div>
+
+      <div class="actions" aria-label="Signature actions">
+        <button id="undoButton" type="button" disabled>Undo</button>
+        <button id="clearButton" type="button" disabled>Clear</button>
+        <button id="saveButton" class="primary" type="button" disabled>Save as PNG</button>
+      </div>
+      <p class="hint">The checkerboard shows the transparent background. The saved PNG contains only the ink, cropped closely around your signature.</p>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script>
+    // v1.0 - initial build
+    // The entire signature pad is implemented with browser-native JavaScript.
+    // No signature data, image, or other information is sent to a server.
+
+    // Find the page elements once so the rest of the code can refer to them.
+    const canvas = document.getElementById('signatureCanvas');
+    const context = canvas.getContext('2d');
+    const colorPicker = document.getElementById('inkColor');
+    const widthSlider = document.getElementById('penWidth');
+    const widthValue = document.getElementById('widthValue');
+    const undoButton = document.getElementById('undoButton');
+    const clearButton = document.getElementById('clearButton');
+    const saveButton = document.getElementById('saveButton');
+    const status = document.getElementById('status');
+
+    // Each completed stroke is kept as a list of points and the ink settings
+    // that were active when it was drawn. This makes undo reliable.
+    let strokes = [];
+    let activeStroke = null;
+    let drawingPointerId = null;
+    let cssWidth = 0;
+    let cssHeight = 0;
+    let pixelRatio = 1;
+
+    // Keep the drawing crisp on high-density phone and tablet screens by
+    // giving the canvas a larger internal bitmap while preserving its CSS size.
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const previousWidth = cssWidth;
+      const previousHeight = cssHeight;
+      cssWidth = rect.width;
+      cssHeight = rect.height;
+      pixelRatio = Math.max(1, window.devicePixelRatio || 1);
+
+      // Resizing a canvas clears its bitmap, so redraw all saved strokes after
+      // changing its internal resolution.
+      canvas.width = Math.round(cssWidth * pixelRatio);
+      canvas.height = Math.round(cssHeight * pixelRatio);
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+      // The drawing surface is responsive. Scale existing point coordinates
+      // proportionally if its displayed dimensions change (for example, rotation).
+      if (previousWidth > 0 && previousHeight > 0 &&
+          (previousWidth !== cssWidth || previousHeight !== cssHeight)) {
+        const scaleX = cssWidth / previousWidth;
+        const scaleY = cssHeight / previousHeight;
+        strokes = strokes.map(stroke => ({
+          ...stroke,
+          points: stroke.points.map(point => ({ x: point.x * scaleX, y: point.y * scaleY }))
+        }));
+      }
+      redrawAllStrokes();
+    }
+
+    // Draw a stroke as a smooth path through its recorded points. Quadratic
+    // curves use midpoints between samples to avoid the jagged look of straight
+    // line segments. Round caps and joins keep the ends of strokes soft.
+    function drawStroke(stroke) {
+      const points = stroke.points;
+      if (!points.length) return;
+
+      context.save();
+      context.strokeStyle = stroke.color;
+      context.fillStyle = stroke.color;
+      context.lineWidth = stroke.width;
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.beginPath();
+
+      if (points.length === 1) {
+        // A quick tap should leave a small round dot rather than nothing.
+        context.arc(points[0].x, points[0].y, stroke.width / 2, 0, Math.PI * 2);
+        context.fill();
+      } else {
+        context.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length - 1; i++) {
+          const midpointX = (points[i].x + points[i + 1].x) / 2;
+          const midpointY = (points[i].y + points[i + 1].y) / 2;
+          context.quadraticCurveTo(points[i].x, points[i].y, midpointX, midpointY);
+        }
+        const last = points[points.length - 1];
+        context.lineTo(last.x, last.y);
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    // Clear the bitmap and paint every completed stroke, followed by the stroke
+    // currently being drawn. The checkerboard is CSS only, so it never becomes
+    // part of the transparent canvas image or the exported PNG.
+    function redrawAllStrokes() {
+      context.clearRect(0, 0, cssWidth, cssHeight);
+      strokes.forEach(drawStroke);
+      if (activeStroke) drawStroke(activeStroke);
+      updateButtons();
+    }
+
+    // Enable or disable actions according to whether any ink is present.
+    function updateButtons() {
+      const hasInk = strokes.length > 0 || Boolean(activeStroke);
+      undoButton.disabled = strokes.length === 0;
+      clearButton.disabled = !hasInk;
+      saveButton.disabled = !hasInk;
+    }
+
+    // Convert a pointer's screen position into coordinates within the canvas.
+    function canvasPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    // Start a stroke for mouse, pen, or touch. Pointer capture keeps receiving
+    // movement events even if the pointer drifts just outside the canvas.
+    canvas.addEventListener('pointerdown', event => {
+      if (event.button !== undefined && event.button !== 0) return;
+      event.preventDefault();
+      if (drawingPointerId !== null) return;
+
+      drawingPointerId = event.pointerId;
+      canvas.setPointerCapture(event.pointerId);
+      activeStroke = {
+        color: colorPicker.value,
+        width: Number(widthSlider.value),
+        points: [canvasPoint(event)]
+      };
+      redrawAllStrokes();
+    });
+
+    // Add each new position to the active stroke and redraw it smoothly.
+    canvas.addEventListener('pointermove', event => {
+      if (event.pointerId !== drawingPointerId || !activeStroke) return;
+      event.preventDefault();
+
+      // Browsers can provide coalesced samples for smoother stylus and mouse
+      // movement. Use those samples when available, otherwise use this event.
+      const samples = typeof event.getCoalescedEvents === 'function'
+        ? event.getCoalescedEvents() : [event];
+      samples.forEach(sample => activeStroke.points.push(canvasPoint(sample)));
+      redrawAllStrokes();
+    });
+
+    // Finish the current stroke and save it to the undo history.
+    function finishStroke(event) {
+      if (event.pointerId !== drawingPointerId || !activeStroke) return;
+      event.preventDefault();
+      strokes.push(activeStroke);
+      activeStroke = null;
+      drawingPointerId = null;
+      redrawAllStrokes();
+      status.textContent = 'Signature updated.';
+    }
+    canvas.addEventListener('pointerup', finishStroke);
+    canvas.addEventListener('pointercancel', finishStroke);
+    canvas.addEventListener('lostpointercapture', event => {
+      if (event.pointerId === drawingPointerId && activeStroke) {
+        strokes.push(activeStroke);
+        activeStroke = null;
+        drawingPointerId = null;
+        redrawAllStrokes();
+      }
+    });
+
+    // Undo removes the most recently completed stroke, then redraws the rest.
+    undoButton.addEventListener('click', () => {
+      if (strokes.length) {
+        strokes.pop();
+        redrawAllStrokes();
+        status.textContent = strokes.length ? 'Last stroke undone.' : 'Signature is empty.';
+      }
+    });
+
+    // Clear removes every stroke after a simple confirmation-free action.
+    clearButton.addEventListener('click', () => {
+      strokes = [];
+      activeStroke = null;
+      drawingPointerId = null;
+      redrawAllStrokes();
+      status.textContent = 'Signature cleared.';
+    });
+
+    // Keep the visible width value in sync with the slider.
+    widthSlider.addEventListener('input', () => {
+      widthValue.textContent = `${widthSlider.value} px`;
+    });
+
+    // Export only the drawn ink. First render strokes to a temporary canvas,
+    // find the non-transparent pixels, then copy that tight rectangle into a
+    // second transparent canvas and download it as a PNG file.
+    function saveAsPNG() {
+      if (!strokes.length) return;
+
+      const exportScale = Math.max(2, window.devicePixelRatio || 1);
+      const temporary = document.createElement('canvas');
+      temporary.width = Math.ceil(cssWidth * exportScale);
+      temporary.height = Math.ceil(cssHeight * exportScale);
+      const tempContext = temporary.getContext('2d');
+      tempContext.scale(exportScale, exportScale);
+
+      // Reuse the same smooth stroke drawing routine on the temporary canvas.
+      const originalContext = context;
+      // The drawing function refers to the shared context, so temporarily
+      // redirect that reference while rendering the export copy.
+      const originalTransform = originalContext.getTransform();
+      context = tempContext;
+      strokes.forEach(drawStroke);
+      context = originalContext;
+      context.setTransform(originalTransform);
+
+      const pixels = tempContext.getImageData(0, 0, temporary.width, temporary.height);
+      const data = pixels.data;
+      let minX = temporary.width, minY = temporary.height, maxX = -1, maxY = -1;
+
+      // Inspect alpha values to find the smallest rectangle containing visible ink.
+      for (let y = 0; y < temporary.height; y++) {
+        for (let x = 0; x < temporary.width; x++) {
+          if (data[(y * temporary.width + x) * 4 + 3] > 0) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < minX || maxY < minY) return;
+
+      // Add a little transparent breathing room around the ink so no edge is cut.
+      const padding = Math.ceil(8 * exportScale);
+      minX = Math.max(0, minX - padding);
+      minY = Math.max(0, minY - padding);
+      maxX = Math.min(temporary.width - 1, maxX + padding);
+      maxY = Math.min(temporary.height - 1, maxY + padding);
+
+      const trimmed = document.createElement('canvas');
+      trimmed.width = maxX - minX + 1;
+      trimmed.height = maxY - minY + 1;
+      trimmed.getContext('2d').drawImage(
+        temporary, minX, minY, trimmed.width, trimmed.height,
+        0, 0, trimmed.width, trimmed.height
+      );
+
+      // Create a temporary download link and click it to save the PNG locally.
+      trimmed.toBlob(blob => {
+        if (!blob) {
+          status.textContent = 'Could not create the PNG. Please try again.';
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'signature.png';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        status.textContent = 'PNG saved with a transparent background.';
+      }, 'image/png');
+    }
+    saveButton.addEventListener('click', saveAsPNG);
+
+    // Redraw at the correct resolution when the page loads or its layout changes.
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(resizeCanvas).observe(canvas);
+    } else {
+      window.addEventListener('resize', resizeCanvas);
+    }
+    resizeCanvas();
+  </script>
+</body>
+</html>
+'''
+path = Path("/mnt/data/signature-pad.html")
+path.write_text(html, encoding="utf-8")
+print(f"Created {path} ({path.stat().st_size:,} bytes)")
