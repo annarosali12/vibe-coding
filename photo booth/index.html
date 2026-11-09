@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Studio Photo Booth</title>
+    <!--
+    ============================================================================
+    Retro Studio Photo Booth - v1.0.0
+    ============================================================================
+    Description:
+    A fully responsive, browser-only interactive Photo Booth web application.
+    Features pixel-level image processing filters (no CSS filters), hardware-conscious
+    camera lifecycle management, 4-shot countdown sequence, accessible screen reader
+    announcements, reduced-motion options, and exportable high-res photo strips.
+
+    Libraries Used:
+    - FontAwesome (v6.4.0)
+      Source: https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
+      Purpose: Accessible icon graphics for media controls, camera actions, and filters.
+    - Tailwind CSS (v3.3.3)
+      Source: https://cdn.tailwindcss.com
+      Purpose: Responsive utility-first styling and layout infrastructure.
+
+    All processing runs strictly in-browser (Client-side only). No user data or images
+    are ever transmitted to external servers.
+    ============================================================================
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .font-mono-retro {
+            font-family: 'Courier Prime', monospace;
+        }
+
+        /* Custom focus outlines for keyboard navigation accessibility */
+        *:focus-visible {
+            outline: 3px solid #f43f5e !important;
+            outline-offset: 3px !important;
+        }
+
+        /* Flash overlay animation for photo shutter effect */
+        @keyframes ShutterFlash {
+            0% { opacity: 0.95; }
+            100% { opacity: 0; }
+        }
+
+        .animate-shutter-flash {
+            animation: ShutterFlash 350ms cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+        }
+
+        /* Countdown text animation overlay */
+        @keyframes PopScale {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-countdown-pop {
+            animation: PopScale 400ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Custom scrollbar for captured photos panel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-rose-500 selection:text-white">
+
+    <!-- Screen Reader Live Region for Announcements -->
+    <div id="srAnnouncer" class="sr-only" aria-live="assertive" aria-atomic="true" role="status"></div>
+
+    <!-- Hidden Video Element (Used solely as source feed to process into canvas pixel array) -->
+    <video id="webcamVideo" class="hidden" playsinline muted width="640" height="480"></video>
+
+    <!-- HEADER SECTION -->
+    <header class="w-full bg-slate-900/80 backdrop-blur border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center shadow-lg shadow-rose-500/20">
+                    <i class="fa-solid font-bold fa-camera-retro text-white text-xl" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
+                        FLASH&amp;SNAP
+                    </h1>
+                    <p class="text-xs text-slate-400 font-medium">Retro Photo Booth Studio</p>
+                </div>
+            </div>
+
+            <!-- Status Indicator -->
+            <div class="flex items-center space-x-2 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700/60" id="cameraStatusBadge">
+                <span id="statusLed" class="w-2.5 h-2.5 rounded-full bg-rose-500 transition-colors duration-300"></span>
+                <span id="statusText" class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Camera Off</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT CONTAINERS -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- LEFT/CENTER COLUMN: CAMERA VIEWPORT & FILTERS -->
+        <section class="lg:col-span-7 flex flex-col space-y-6" aria-label="Camera Controls and Live Feed">
+            
+            <!-- CANVAS VIEWPORT CONTAINER -->
+            <div class="relative w-full aspect-[4/3] bg-slate-950 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center group">
+                
+                <!-- Screen Flash Layer for Shutter Effect -->
+                <div id="flashOverlay" class="absolute inset-0 bg-white pointer-events-none z-30 opacity-0" aria-hidden="true"></div>
+
+                <!-- 3, 2, 1 Visual Countdown Overlay -->
+                <div id="countdownContainer" class="absolute inset-0 z-20 flex items-center justify-center pointer-events-none hidden bg-slate-950/40 backdrop-blur-sm">
+                    <span id="countdownText" class="text-9xl font-black text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] font-mono-retro">3</span>
+                </div>
+
+                <!-- Main Canvas (Hardware-accelerated pixel filter renderer) -->
+                <canvas id="viewfinderCanvas" width="640" height="480" class="w-full h-full object-cover block" aria-label="Live camera viewfinder preview"></canvas>
+
+                <!-- Idle Camera Placeholder State -->
+                <div id="idleState" class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-900/95 text-center p-6 space-y-4">
+                    <div class="w-20 h-20 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 mb-2">
+                        <i class="fa-solid fa-video-slash text-3xl" aria-hidden="true"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white">Camera is Turned Off</h2>
+                    <p class="text-sm text-slate-400 max-w-md">Press the <span class="text-rose-400 font-semibold">Start Camera</span> button below to enable your device webcam and display the live preview.</p>
+                </div>
+
+                <!-- Permission Denied Warning Dialog Container -->
+                <div id="permissionDeniedState" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/95 text-center p-6 space-y-4 hidden overflow-y-auto">
+                    <div class="w-16 h-16 rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500">
+                        <i class="fa-solid fa-triangle-exclamation text-2xl" aria-hidden="true"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-white">Camera Access Denied</h2>
+                    <p class="text-xs text-slate-300 max-w-md">Your browser blocked webcam permissions. To turn the camera back on, follow the instructions for your browser:</p>
+                    
+                    <div class="text-left text-xs bg-slate-900 border border-slate-800 rounded-lg p-4 w-full max-w-md space-y-2 text-slate-300">
+                        <p><strong class="text-white">Google Chrome / Edge:</strong> Click the lock icon next to the URL address bar, toggle "Camera" to <span class="text-emerald-400">Allow</span>, and reload.</p>
+                        <p><strong class="text-white">Safari:</strong> Go to Safari Settings &gt; Websites &gt; Camera, set this site to <span class="text-emerald-400">Allow</span>.</p>
+                        <p><strong class="text-white">Firefox:</strong> Click the permissions icon left of the URL bar, clear the camera block, and reload.</p>
+                    </div>
+
+                    <button id="retryCameraBtn" type="button" class="mt-2 inline-flex items-center space-x-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+                        <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                        <span>Try Again</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PRIMARY CONTROLS TOOLBAR -->
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900 p-4 rounded-xl border border-slate-800">
+                <div class="flex items-center space-x-3 w-full sm:w-auto">
+                    <!-- Start Camera Button -->
+                    <button id="startCamBtn" type="button" class="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 focus:bg-emerald-500 text-white font-semibold px-5 py-3 rounded-xl transition shadow-lg shadow-emerald-600/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-power-off" aria-hidden="true"></i>
+                        <span>Start Camera</span>
+                    </button>
+
+                    <!-- Stop Camera Button -->
+                    <button id="stopCamBtn" type="button" disabled class="flex-1 sm:flex-initial inline-flex items-center justify-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold px-5 py-3 rounded-xl border border-slate-700 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                        <span>Stop Camera</span>
+                    </button>
+                </div>
+
+                <!-- Take 4 Photos Trigger Button -->
+                <button id="takeStripBtn" type="button" disabled class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-rose-600 hover:bg-rose-500 focus:bg-rose-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-rose-600/25 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-layer-group text-lg" aria-hidden="true"></i>
+                    <span>Take 4 Photos</span>
+                </button>
+            </div>
+
+            <!-- PIXEL-BASED FILTER SELECTION FIELDSET -->
+            <fieldset class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                <legend class="text-xs font-bold uppercase tracking-wider text-slate-400 px-1 mb-3 flex items-center space-x-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-rose-400" aria-hidden="true"></i>
+                    <span>Pixel-Level Custom Filters</span>
+                </legend>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2" id="filterButtonGroup" role="radiogroup" aria-label="Camera Image Filters">
+                    <button type="button" role="radio" aria-checked="true" data-filter="none" class="filter-btn active-filter flex flex-col items-center justify-center p-3 rounded-lg border bg-rose-600/10 border-rose-500 text-rose-300 font-medium text-xs transition hover:bg-slate-800">
+                        <i class="fa-solid fa-ban text-base mb-1" aria-hidden="true"></i>
+                        <span>None</span>
+                    </button>
+                    <button type="button" role="radio" aria-checked="false" data-filter="bw" class="filter-btn flex flex-col items-center justify-center p-3 rounded-lg border bg-slate-800/60 border-slate-700/70 text-slate-300 hover:text-white font-medium text-xs transition hover:bg-slate-800">
+                        <i class="fa-solid fa-circle-half-stroke text-base mb-1" aria-hidden="true"></i>
+                        <span>B &amp; W</span>
+                    </button>
+                    <button type="button" role="radio" aria-checked="false" data-filter="old" class="filter-btn flex flex-col items-center justify-center p-3 rounded-lg border bg-slate-800/60 border-slate-700/70 text-slate-300 hover:text-white font-medium text-xs transition hover:bg-slate-800">
+                        <i class="fa-solid fa-box-archive text-base mb-1" aria-hidden="true"></i>
+                        <span>Old Photo</span>
+                    </button>
+                    <button type="button" role="radio" aria-checked="false" data-filter="negative" class="filter-btn flex flex-col items-center justify-center p-3 rounded-lg border bg-slate-800/60 border-slate-700/70 text-slate-300 hover:text-white font-medium text-xs transition hover:bg-slate-800">
+                        <i class="fa-solid fa-eye-dropper text-base mb-1" aria-hidden="true"></i>
+                        <span>Negative</span>
+                    </button>
+                    <button type="button" role="radio" aria-checked="false" data-filter="pop" class="filter-btn col-span-2 sm:col-span-1 flex flex-col items-center justify-center p-3 rounded-lg border bg-slate-800/60 border-slate-700/70 text-slate-300 hover:text-white font-medium text-xs transition hover:bg-slate-800">
+                        <i class="fa-solid fa-bolt text-base mb-1 text-amber-400" aria-hidden="true"></i>
+                        <span>Pop Art</span>
+                    </button>
+                </div>
+            </fieldset>
+        </section>
+
+        <!-- RIGHT COLUMN: CAPTURED PHOTO STRIP PREVIEW & DOWNLOAD -->
+        <section class="lg:col-span-5 flex flex-col space-y-6" aria-label="Photo Strip Preview & Export">
+            <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 shadow-xl flex flex-col items-center">
+                <div class="w-full flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h2 class="text-base font-bold text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-images text-rose-500" aria-hidden="true"></i>
+                        <span>Your Photo Strip</span>
+                    </h2>
+                    <span id="capturedCount" class="text-xs font-semibold px-2.5 py-1 bg-slate-800 text-slate-300 rounded-full border border-slate-700">0 / 4 Shots</span>
+                </div>
+
+                <!-- VISUAL STRIP PREVIEW WRAPPER -->
+                <div id="photoStripContainer" class="w-full max-w-[260px] bg-white p-3 rounded-sm shadow-2xl flex flex-col items-center space-y-3 transition-transform duration-300">
+                    
+                    <!-- 4 Thumbnail Slots -->
+                    <div id="slot-0" class="w-full aspect-[4/3] bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 text-xs font-mono-retro">
+                        <i class="fa-regular fa-image text-2xl mb-1 text-slate-300" aria-hidden="true"></i>
+                        <span>Shot #1</span>
+                    </div>
+                    <div id="slot-1" class="w-full aspect-[4/3] bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 text-xs font-mono-retro">
+                        <i class="fa-regular fa-image text-2xl mb-1 text-slate-300" aria-hidden="true"></i>
+                        <span>Shot #2</span>
+                    </div>
+                    <div id="slot-2" class="w-full aspect-[4/3] bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 text-xs font-mono-retro">
+                        <i class="fa-regular fa-image text-2xl mb-1 text-slate-300" aria-hidden="true"></i>
+                        <span>Shot #3</span>
+                    </div>
+                    <div id="slot-3" class="w-full aspect-[4/3] bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 text-xs font-mono-retro">
+                        <i class="fa-regular fa-image text-2xl mb-1 text-slate-300" aria-hidden="true"></i>
+                        <span>Shot #4</span>
+                    </div>
+
+                    <!-- Photo Booth Strip Footer Branding -->
+                    <div class="w-full pt-1 pb-2 text-center border-t border-slate-200">
+                        <p class="text-[11px] font-black tracking-widest text-slate-800 uppercase font-mono-retro">FLASH &amp; SNAP</p>
+                        <p id="stripDateStamp" class="text-[9px] text-slate-500 font-mono-retro font-medium"></p>
+                    </div>
+                </div>
+
+                <!-- Export / Download Trigger -->
+                <button id="downloadBtn" type="button" disabled class="w-full mt-6 inline-flex items-center justify-center space-x-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg shadow-emerald-600/20 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-download" aria-hidden="true"></i>
+                    <span>Download Photo Strip</span>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER ACCESSIBILITY & PRIVACY NOTE -->
+    <footer class="w-full border-t border-slate-800/80 bg-slate-950/60 py-4 text-center text-xs text-slate-500">
+        <p>Client-Side Processing Only • No camera data leaves your device browser session</p>
+    </footer>
+
+    <!-- LOGIC SCRIPT SECTION -->
+    <script>
+        // =========================================================================
+        // RETRO PHOTO BOOTH - ENGINE & PIXEL FILTER PIPELINE (v1.0.0)
+        // =========================================================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- DOM Element References ---
+            const videoEl = document.getElementById('webcamVideo');
+            const canvasEl = document.getElementById('viewfinderCanvas');
+            const ctx = canvasEl.getContext('2d', { willReadFrequently: true });
+            
+            const startCamBtn = document.getElementById('startCamBtn');
+            const stopCamBtn = document.getElementById('stopCamBtn');
+            const takeStripBtn = document.getElementById('takeStripBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const retryCameraBtn = document.getElementById('retryCameraBtn');
+            
+            const idleState = document.getElementById('idleState');
+            const permissionDeniedState = document.getElementById('permissionDeniedState');
+            const statusLed = document.getElementById('statusLed');
+            const statusText = document.getElementById('statusText');
+            const srAnnouncer = document.getElementById('srAnnouncer');
+            
+            const countdownContainer = document.getElementById('countdownContainer');
+            const countdownText = document.getElementById('countdownText');
+            const flashOverlay = document.getElementById('flashOverlay');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const stripDateStamp = document.getElementById('stripDateStamp');
+            const capturedCountBadge = document.getElementById('capturedCount');
+
+            // --- State Variables ---
+            let mediaStream = null;
+            let animationFrameId = null;
+            let currentFilter = 'none';
+            let isSequenceRunning = false;
+            let capturedShots = []; // Holds ImageData objects for the 4 taken photos
+
+            // Set current date in photo booth footer
+            const now = new Date();
+            stripDateStamp.textContent = now.toLocaleDateString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric'
+            }).toUpperCase();
+
+            // Check system preference for reduced motion
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+            // Helper function to announce messages to screen readers
+            function announceToScreenReader(message) {
+                srAnnouncer.textContent = '';
+                setTimeout(() => {
+                    srAnnouncer.textContent = message;
+                }, 50);
+            }
+
+            // =========================================================================
+            // CAMERA STREAM LIFECYCLE MANAGEMENT
+            // =========================================================================
+
+            /**
+             * Requests hardware webcam media stream only when user explicitly interacts.
+             */
+            async function startCamera() {
+                try {
+                    permissionDeniedState.classList.add('hidden');
+                    
+                    mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 960 },
+                            facingMode: "user"
+                        },
+                        audio: false
+                    });
+
+                    videoEl.srcObject = mediaStream;
+                    await videoEl.play();
+
+                    // Adjust canvas internal render size matching video aspect ratio
+                    canvasEl.width = videoEl.videoWidth || 640;
+                    canvasEl.height = videoEl.videoHeight || 480;
+
+                    // Update UI State
+                    idleState.classList.add('hidden');
+                    statusLed.classList.remove('bg-rose-500');
+                    statusLed.classList.add('bg-emerald-400', 'animate-pulse');
+                    statusText.textContent = 'Camera Live';
+                    
+                    startCamBtn.disabled = true;
+                    stopCamBtn.disabled = false;
+                    takeStripBtn.disabled = false;
+
+                    announceToScreenReader("Camera activated successfully. Live preview is on screen.");
+                    
+                    // Begin continuous render loop
+                    renderFrame();
+
+                } catch (err) {
+                    console.error("Camera access error:", err);
+                    stopCamera();
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        permissionDeniedState.classList.remove('hidden');
+                        announceToScreenReader("Camera access was denied. Instructions are displayed on screen.");
+                    } else {
+                        alert("Could not access camera: " + err.message);
+                    }
+                }
+            }
+
+            /**
+             * Completely stops all MediaStream tracks to immediately extinguish hardware LED light.
+             */
+            function stopCamera() {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+
+                if (mediaStream) {
+                    // Turn off hardware device components completely
+                    mediaStream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    mediaStream = null;
+                }
+
+                videoEl.srcObject = null;
+
+                // Clear canvas render context
+                ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+                // Update UI State
+                idleState.classList.remove('hidden');
+                statusLed.classList.remove('bg-emerald-400', 'animate-pulse');
+                statusLed.classList.add('bg-rose-500');
+                statusText.textContent = 'Camera Off';
+
+                startCamBtn.disabled = false;
+                stopCamBtn.disabled = true;
+                takeStripBtn.disabled = true;
+
+                announceToScreenReader("Camera has been powered down.");
+            }
+
+            // =========================================================================
+            // CANVAS RENDER & PIXEL FILTER PIPELINE
+            // =========================================================================
+
+            /**
+             * Main animation loop: Draws video mirrored and applies custom pixel filters directly.
+             */
+            function renderFrame() {
+                if (!mediaStream) return;
+
+                const width = canvasEl.width;
+                const height = canvasEl.height;
+
+                // Save context state & flip horizontally for mirror-like behavior
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.drawImage(videoEl, -width, 0, width, height);
+                ctx.restore();
+
+                // Extract frame pixel data for direct manipulation
+                const imageData = ctx.getImageData(0, 0, width, height);
+                
+                // Apply pixel modifications based on active filter choice
+                applyPixelFilter(imageData, currentFilter);
+
+                // Paint processed pixel array back onto visible canvas
+                ctx.putImageData(imageData, 0, 0);
+
+                animationFrameId = requestAnimationFrame(renderFrame);
+            }
+
+            /**
+             * Direct pixel array modification (ImageData manipulation).
+             * @param {ImageData} imgData 
+             * @param {string} filterType 
+             */
+            function applyPixelFilter(imgData, filterType) {
+                if (filterType === 'none') return;
+
+                const data = imgData.data;
+                const len = data.length;
+
+                for (let i = 0; i < len; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    switch (filterType) {
+                        case 'bw': {
+                            // Standard ITU-R BT.601 perceptual grayscale formula
+                            const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+                            data[i] = gray;
+                            data[i + 1] = gray;
+                            data[i + 2] = gray;
+                            break;
+                        }
+                        case 'old': {
+                            // Warm Sepia transform with contrast tuning
+                            const sr = (r * 0.393) + (g * 0.769) + (b * 0.189);
+                            const sg = (r * 0.349) + (g * 0.686) + (b * 0.168);
+                            const sb = (r * 0.272) + (g * 0.534) + (b * 0.131);
+                            
+                            data[i] = Math.min(255, sr);
+                            data[i + 1] = Math.min(255, sg);
+                            data[i + 2] = Math.min(255, sb);
+                            break;
+                        }
+                        case 'negative': {
+                            // Color channel inversion
+                            data[i] = 255 - r;
+                            data[i + 1] = 255 - g;
+                            data[i + 2] = 255 - b;
+                            break;
+                        }
+                        case 'pop': {
+                            // Posterized high-contrast pop art calculation
+                            const avg = (r + g + b) / 3;
+                            const level = avg > 128 ? 220 : 40;
+                            data[i] = r > 128 ? 255 : 30;
+                            data[i + 1] = g > 120 ? level : 20;
+                            data[i + 2] = b > 128 ? 220 : 100;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
+            // 4-PHOTO COUNTDOWN & CAPTURE SEQUENCE
+            // =========================================================================
+
+            /**
+             * Executes 4 sequential photo countdowns with accessible feedback.
+             */
+            async function startPhotoStripSequence() {
+                if (isSequenceRunning || !mediaStream) return;
+
+                isSequenceRunning = true;
+                capturedShots = [];
+                takeStripBtn.disabled = true;
+                downloadBtn.disabled = true;
+                capturedCountBadge.textContent = "0 / 4 Shots";
+
+                // Reset thumbnail UI slots
+                for (let i = 0; i < 4; i++) {
+                    const slot = document.getElementById(`slot-${i}`);
+                    slot.innerHTML = `
+                        <i class="fa-regular fa-image text-2xl mb-1 text-slate-300" aria-hidden="true"></i>
+                        <span>Shot #${i + 1}</span>
+                    `;
+                }
+
+                announceToScreenReader("Starting 4-photo capture sequence.");
+
+                for (let photoIndex = 0; photoIndex < 4; photoIndex++) {
+                    // 3, 2, 1 Countdown Loop
+                    countdownContainer.classList.remove('hidden');
+
+                    for (let count = 3; count >= 1; count--) {
+                        countdownText.textContent = count;
+                        
+                        // Restart CSS animation for crisp pop effect
+                        countdownText.classList.remove('animate-countdown-pop');
+                        void countdownText.offsetWidth; // force reflow
+                        countdownText.classList.add('animate-countdown-pop');
+
+                        announceToScreenReader(`Photo ${photoIndex + 1}: ${count}`);
+                        await delay(900);
+                    }
+
+                    countdownContainer.classList.add('hidden');
+
+                    // Capture Photo
+                    triggerShutterEffect();
+                    announceToScreenReader(`Snap! Photo ${photoIndex + 1} captured.`);
+                    
+                    // Store current canvas frame buffer as independent ImageData
+                    const currentFrame = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
+                    capturedShots.push(currentFrame);
+
+                    // Update UI Slot Preview
+                    updateSlotPreview(photoIndex, currentFrame);
+                    capturedCountBadge.textContent = `${photoIndex + 1} / 4 Shots`;
+
+                    // Brief pause between shots
+                    if (photoIndex < 3) {
+                        await delay(1200);
+                    }
+                }
+
+                isSequenceRunning = false;
+                takeStripBtn.disabled = false;
+                downloadBtn.disabled = false;
+                announceToScreenReader("All 4 photos taken! Your photo strip is ready to download.");
+            }
+
+            /**
+             * Trigger white flash overlay respecting reduced motion preferences.
+             */
+            function triggerShutterEffect() {
+                if (prefersReducedMotion) return; // Skip flash animation if reduced motion requested
+
+                flashOverlay.classList.remove('animate-shutter-flash');
+                void flashOverlay.offsetWidth; // force reflow
+                flashOverlay.classList.add('animate-shutter-flash');
+            }
+
+            /**
+             * Renders an ImageData snapshot onto a slot preview thumbnail.
+             */
+            function updateSlotPreview(slotIndex, imageData) {
+                const slot = document.getElementById(`slot-${slotIndex}`);
+                slot.innerHTML = ''; // clear text placeholder
+
+                const thumbCanvas = document.createElement('canvas');
+                thumbCanvas.width = imageData.width;
+                thumbCanvas.height = imageData.height;
+                thumbCanvas.className = "w-full h-full object-cover rounded-xs";
+                
+                const tCtx = thumbCanvas.getContext('2d');
+                tCtx.putImageData(imageData, 0, 0);
+
+                slot.appendChild(thumbCanvas);
+            }
+
+            // =========================================================================
+            // PHOTO STRIP GENERATION & EXPORT
+            // =========================================================================
+
+            /**
+             * Composites 4 photos vertically into a retro photo booth strip and downloads PNG.
+             */
+            function exportPhotoStrip() {
+                if (capturedShots.length < 4) return;
+
+                // Offscreen Canvas Setup
+                const stripCanvas = document.createElement('canvas');
+                const sCtx = stripCanvas.getContext('2d');
+
+                const photoW = 600;
+                const photoH = 450;
+                const borderPadding = 30;
+                const gap = 20;
+                const footerH = 100;
+
+                stripCanvas.width = photoW + (borderPadding * 2);
+                stripCanvas.height = (borderPadding * 2) + (photoH * 4) + (gap * 3) + footerH;
+
+                // Draw Background Paper
+                sCtx.fillStyle = '#ffffff';
+                sCtx.fillRect(0, 0, stripCanvas.width, stripCanvas.height);
+
+                // Draw each photo onto the strip
+                capturedShots.forEach((imgData, i) => {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = imgData.width;
+                    tempCanvas.height = imgData.height;
+                    tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
+
+                    const x = borderPadding;
+                    const y = borderPadding + (i * (photoH + gap));
+                    sCtx.drawImage(tempCanvas, x, y, photoW, photoH);
+                });
+
+                // Render Footer Branding & Date
+                const footerCenterY = stripCanvas.height - (footerH / 2);
+                
+                sCtx.fillStyle = '#0f172a';
+                sCtx.font = 'bold 24px "Courier Prime", monospace';
+                sCtx.textAlign = 'center';
+                sCtx.fillText('FLASH & SNAP STUDIO', stripCanvas.width / 2, footerCenterY - 10);
+
+                sCtx.fillStyle = '#64748b';
+                sCtx.font = '16px "Courier Prime", monospace';
+                sCtx.fillText(stripDateStamp.textContent, stripCanvas.width / 2, footerCenterY + 18);
+
+                // Trigger Browser Download via standard DataURL
+                const dataUrl = stripCanvas.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `photo-strip-${Date.now()}.png`;
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                announceToScreenReader("Photo strip PNG file downloaded successfully.");
+            }
+
+            // Async timeout helper
+            function delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            // =========================================================================
+            // EVENT LISTENERS & FILTER BUTTON SELECTION
+            // =========================================================================
+
+            startCamBtn.addEventListener('click', startCamera);
+            stopCamBtn.addEventListener('click', stopCamera);
+            retryCameraBtn.addEventListener('click', startCamera);
+            takeStripBtn.addEventListener('click', startPhotoStripSequence);
+            downloadBtn.addEventListener('click', exportPhotoStrip);
+
+            // Filter button handler
+            filterButtons.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const selected = e.currentTarget;
+                    currentFilter = selected.getAttribute('data-filter');
+
+                    // Update ARIA radio states and styling
+                    filterButtons.forEach(b => {
+                        b.setAttribute('aria-checked', 'false');
+                        b.classList.remove('bg-rose-600/10', 'border-rose-500', 'text-rose-300');
+                        b.classList.add('bg-slate-800/60', 'border-slate-700/70', 'text-slate-300');
+                    });
+
+                    selected.setAttribute('aria-checked', 'true');
+                    selected.classList.remove('bg-slate-800/60', 'border-slate-700/70', 'text-slate-300');
+                    selected.classList.add('bg-rose-600/10', 'border-rose-500', 'text-rose-300');
+
+                    announceToScreenReader(`Filter changed to ${selected.textContent.trim()}`);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
