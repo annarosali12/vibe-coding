@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <!--
+        // v1.1 - fixed frame capture loop for camera scanning
+        // Libraries used:
+        // 1. Tailwind CSS - v3.4.1 (https://cdn.tailwindcss.com) - Utility-first CSS framework for rapid UI styling
+        // 2. jsQR - v1.4.0 (https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js) - Pure JavaScript QR code scanning library for decoding raw image data from webcam or uploaded images
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure QR Code Scanner</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load jsQR library pinned to version 1.4.0 -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        /* Custom smooth transitions and animations */
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-full flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header section with descriptive app details and library disclosures -->
+    <header class="bg-slate-800 border-b border-slate-700 shadow-md">
+        <div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 p-2.5 rounded-xl shadow-inner text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white">Secure QR Scanner</h1>
+                    <p class="text-xs text-slate-400">100% Client-Side Processing • Zero Data Sent to Servers</p>
+                </div>
+            </div>
+            <div class="text-xs bg-slate-900/80 border border-slate-700/60 rounded-lg px-3 py-1.5 text-slate-400">
+                Powered by <strong class="text-slate-300">jsQR v1.4.0</strong> & <strong class="text-slate-300">Tailwind CSS v3.4.1</strong>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Layout -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+        <!-- Control Action Bar -->
+        <section aria-label="Scanner Controls" class="bg-slate-800 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-wrap items-center justify-center gap-3">
+            <button id="start-camera-btn" 
+                class="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-emerald-500/30 cursor-pointer"
+                aria-label="Start Camera">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Start Camera
+            </button>
+
+            <button id="stop-camera-btn" disabled 
+                class="flex items-center gap-2 bg-rose-600/50 hover:bg-rose-600 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-rose-500/30 cursor-pointer"
+                aria-label="Stop Camera">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+                Stop Camera
+            </button>
+
+            <label for="file-upload" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl shadow-lg transition-all focus-within:ring-4 focus-within:ring-indigo-500/30 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Scan a picture instead
+                <input type="file" id="file-upload" accept="image/*" class="sr-only" aria-label="Upload QR Code image">
+            </label>
+        </section>
+
+        <!-- Viewfinder & Camera Stream / Canvas Container -->
+        <section aria-label="Camera Feed and Scanner Viewfinder" class="relative bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center justify-center min-h-[320px] sm:min-h-[400px]">
+            
+            <!-- Placeholder state when camera/image is not active -->
+            <div id="scanner-placeholder" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-500 bg-slate-900/90 z-10">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-3 text-slate-600 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <p class="text-sm font-medium text-slate-400">Camera is off. Click "Start Camera" or upload a screenshot to scan.</p>
+            </div>
+
+            <!-- Hidden video element used to capture camera frames (playsinline, muted, autoplay for mobile browser compatibility) -->
+            <video id="camera-video" playsinline muted autoplay class="absolute inset-0 w-full h-full object-contain bg-black hidden"></video>
+
+            <!-- Canvas element used for processing frames and drawing bounding boxes -->
+            <canvas id="scanner-canvas" class="w-full h-full object-contain z-0"></canvas>
+
+            <!-- Targeting Reticle Overlay -->
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-20">
+                <div class="w-48 h-48 sm:w-64 sm:h-64 border-2 border-indigo-500/40 rounded-2xl relative shadow-[0_0_30px_rgba(99,102,241,0.15)]">
+                    <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-indigo-400 rounded-tl-xl"></div>
+                    <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-indigo-400 rounded-tr-xl"></div>
+                    <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-indigo-400 rounded-bl-xl"></div>
+                    <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-indigo-400 rounded-br-xl"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status / Results Display Card -->
+        <section aria-label="Scan Results" class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl flex flex-col gap-4">
+            <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Scan Result
+                </h2>
+                <button id="clear-result-btn" class="text-xs text-slate-400 hover:text-slate-200 transition-colors focus:outline-none focus:underline cursor-pointer">
+                    Clear Result
+                </button>
+            </div>
+
+            <!-- Plain Text Output Container -->
+            <div class="flex flex-col gap-2">
+                <label for="output-text" class="text-xs font-medium text-slate-400 uppercase tracking-wider">Decoded Content (Plain Text)</label>
+                <div class="relative">
+                    <textarea id="output-text" readonly rows="3" 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-slate-200 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-y"
+                        placeholder="No QR code scanned yet. Scan a code to view its content here..."></textarea>
+                </div>
+            </div>
+
+            <!-- URL Analysis & Safety Banner Container (Dynamically populated) -->
+            <div id="url-analysis-container" class="hidden flex flex-col gap-4 bg-slate-900/90 border border-slate-700 rounded-xl p-5">
+                
+                <!-- Website Title Display -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-indigo-400">Website Domain Name</span>
+                    <span id="url-domain-display" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight break-all">example.com</span>
+                </div>
+
+                <!-- Security Warning Banner (HTTP or Shortener) -->
+                <div id="security-warning-banner" class="hidden items-start gap-3 bg-amber-950/60 border border-amber-600/50 rounded-xl p-4 text-amber-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div class="flex flex-col gap-1">
+                        <span class="font-bold text-amber-300">Security Warning</span>
+                        <p id="security-warning-text" class="text-sm text-amber-200/90 leading-relaxed"></p>
+                    </div>
+                </div>
+
+                <!-- Safe Action Button (Requires User Intent, Never Auto-Opens) -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-slate-800">
+                    <p class="text-xs text-slate-400">Links never open automatically. Click to open safely in a new tab.</p>
+                    <a id="safe-open-link-btn" href="#" target="_blank" rel="noopener noreferrer" 
+                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium px-6 py-2.5 rounded-xl shadow-lg transition-all focus:outline-none focus:ring-4 focus:ring-indigo-500/30 cursor-pointer">
+                        <span>Open Link</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 border-t border-slate-700 py-4 text-center text-xs text-slate-500">
+        <p>Secure QR Code Scanner • Client-side vanilla JavaScript app.</p>
+    </footer>
+
+    <!-- Notification Toast / Custom Message Box -->
+    <div id="toast-notification" aria-live="polite" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 border border-slate-700 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3">
+        <div id="toast-icon-container" class="text-emerald-400">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+        <span id="toast-message" class="text-sm font-medium">Notification message</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // v1.1 - Main client-side script for camera management, jsQR scanning, bounding box rendering, and URL security checks.
+
+        // DOM Element references
+        const startCameraBtn = document.getElementById('start-camera-btn');
+        const stopCameraBtn = document.getElementById('stop-camera-btn');
+        const fileUploadInput = document.getElementById('file-upload');
+        const cameraVideo = document.getElementById('camera-video');
+        const scannerCanvas = document.getElementById('scanner-canvas');
+        const scannerPlaceholder = document.getElementById('scanner-placeholder');
+        const outputTextArea = document.getElementById('output-text');
+        const clearResultBtn = document.getElementById('clear-result-btn');
+        const urlAnalysisContainer = document.getElementById('url-analysis-container');
+        const urlDomainDisplay = document.getElementById('url-domain-display');
+        const securityWarningBanner = document.getElementById('security-warning-banner');
+        const securityWarningText = document.getElementById('security-warning-text');
+        const safeOpenLinkBtn = document.getElementById('safe-open-link-btn');
+        const toastNotification = document.getElementById('toast-notification');
+        const toastMessage = document.getElementById('toast-message');
+
+        const canvasCtx = scannerCanvas.getContext('2d', { willReadFrequently: true });
+        
+        let mediaStream = null;
+        let animationFrameId = null;
+        let isScanningActive = false;
+
+        // List of known link shorteners to trigger security warnings
+        const KNOWN_SHORTENERS = [
+            'bit.ly', 't.co', 'tinyurl.com', 'goo.gl', 'ow.ly', 
+            'is.gd', 'buff.ly', 'rebrand.ly', 'lnkd.in', 'ift.tt', 
+            'qr.ae', 'shorte.st', 'adf.ly', 'bl.ink', 'db.tt'
+        ];
+
+        /**
+         * Displays a non-intrusive toast notification message on screen.
+         */
+        function showToast(message, isError = false) {
+            toastMessage.textContent = message;
+            toastNotification.classList.remove('translate-y-20', 'opacity-0');
+            if (isError) {
+                toastNotification.classList.add('border-rose-500/50');
+            } else {
+                toastNotification.classList.remove('border-rose-500/50');
+            }
+            setTimeout(() => {
+                toastNotification.classList.add('translate-y-20', 'opacity-0');
+            }, 4000);
+        }
+
+        /**
+         * Starts the device back camera stream.
+         */
+        async function startCamera() {
+            try {
+                // Request back-facing camera preferentially with ideal video resolution
+                const constraints = {
+                    audio: false,
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
+
+                mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraVideo.srcObject = mediaStream;
+                cameraVideo.setAttribute('playsinline', 'true');
+                cameraVideo.setAttribute('muted', 'true');
+                cameraVideo.setAttribute('autoplay', 'true');
+
+                // Wait for video metadata to load so dimensions are available
+                await new Promise((resolve) => {
+                    cameraVideo.onloadedmetadata = () => resolve();
+                });
+                
+                await cameraVideo.play();
+
+                scannerPlaceholder.classList.add('hidden');
+                cameraVideo.classList.remove('hidden');
+                startCameraBtn.disabled = true;
+                startCameraBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                stopCameraBtn.disabled = false;
+                stopCameraBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-rose-600/50');
+                stopCameraBtn.classList.add('bg-rose-600');
+
+                isScanningActive = true;
+                // Begin video frame capture loop
+                requestAnimationFrame(scanVideoFrame);
+                showToast("Camera started. Point at a QR code.");
+            } catch (error) {
+                console.error("Camera error:", error);
+                showToast("Unable to access camera. Please check camera permissions.", true);
+            }
+        }
+
+        /**
+         * Stops the camera stream and resets viewfinder state.
+         */
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            isScanningActive = false;
+            cameraVideo.pause();
+            cameraVideo.srcObject = null;
+            cameraVideo.classList.add('hidden');
+            scannerPlaceholder.classList.remove('hidden');
+
+            startCameraBtn.disabled = false;
+            startCameraBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            stopCameraBtn.disabled = true;
+            stopCameraBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-rose-600/50');
+            stopCameraBtn.classList.remove('bg-rose-600');
+
+            showToast("Camera stopped.");
+        }
+
+        /**
+         * Continuously captures video frames, draws them to canvas, and sends image data to jsQR.
+         */
+        function scanVideoFrame() {
+            if (!isScanningActive) return;
+
+            // Ensure video element has enough data and valid dimensions ready for extraction
+            if (cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA && cameraVideo.videoWidth > 0 && cameraVideo.videoHeight > 0) {
+                
+                // Keep canvas resolution in sync with camera stream dimensions
+                if (scannerCanvas.width !== cameraVideo.videoWidth || scannerCanvas.height !== cameraVideo.videoHeight) {
+                    scannerCanvas.width = cameraVideo.videoWidth;
+                    scannerCanvas.height = cameraVideo.videoHeight;
+                }
+
+                // Render current video frame onto canvas
+                canvasCtx.drawImage(cameraVideo, 0, 0, scannerCanvas.width, scannerCanvas.height);
+                
+                // Extract raw pixel array from canvas
+                const imageData = canvasCtx.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+
+                // Send frame pixel data directly to jsQR for decoding
+                const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                    inversionAttempts: "dontInvert"
+                });
+
+                if (code) {
+                    // Draw bounding box around detected QR code
+                    drawBoundingBox(code.location);
+
+                    // Successfully decoded a QR code: update UI and stop the camera stream
+                    handleSuccessfulScan(code.data);
+                    stopCamera();
+                    return;
+                }
+            }
+
+            // Request next animation frame for real-time continuous video frame processing
+            animationFrameId = requestAnimationFrame(scanVideoFrame);
+        }
+
+        /**
+         * Draws a prominent bounding box around the detected QR code location.
+         */
+        function drawBoundingBox(location) {
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(location.topLeftCorner.x, location.topLeftCorner.y);
+            canvasCtx.lineTo(location.topRightCorner.x, location.topRightCorner.y);
+            canvasCtx.lineTo(location.bottomRightCorner.x, location.bottomRightCorner.y);
+            canvasCtx.lineTo(location.bottomLeftCorner.x, location.bottomLeftCorner.y);
+            canvasCtx.closePath();
+            
+            canvasCtx.lineWidth = 6;
+            canvasCtx.strokeStyle = "#10B981"; // Emerald green border
+            canvasCtx.stroke();
+        }
+
+        /**
+         * Handles uploaded image files (screenshots or saved QR code photos).
+         */
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    // Stop any active camera stream when scanning a file
+                    if (isScanningActive) {
+                        stopCamera();
+                    }
+
+                    // Setup canvas to match image dimensions
+                    scannerCanvas.width = img.width;
+                    scannerCanvas.height = img.height;
+                    canvasCtx.drawImage(img, 0, 0);
+
+                    scannerPlaceholder.classList.add('hidden');
+
+                    const imageData = canvasCtx.getImageData(0, 0, scannerCanvas.width, scannerCanvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert"
+                    });
+
+                    if (code) {
+                        drawBoundingBox(code.location);
+                        handleSuccessfulScan(code.data);
+                        showToast("QR code successfully read from image!");
+                    } else {
+                        showToast("No QR code found in the uploaded image.", true);
+                        outputTextArea.value = "No QR code could be detected in this image. Try another picture.";
+                        urlAnalysisContainer.classList.add('hidden');
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            // Reset file input value so same file can be selected again if needed
+            event.target.value = '';
+        }
+
+        /**
+         * Processes successful scan data: updates plain text and checks for URLs.
+         */
+        function handleSuccessfulScan(rawText) {
+            outputTextArea.value = rawText;
+            analyzeScannedText(rawText);
+            showToast("QR code successfully scanned!");
+        }
+
+        /**
+         * Analyzes scanned text to check if it's a valid URL, extracts domain, and applies security checks.
+         */
+        function analyzeScannedText(text) {
+            const trimmed = text.trim();
+            let urlObj = null;
+
+            // Check if text represents a valid URL (with or without protocol)
+            try {
+                if (/^(https?:\/\/)/i.test(trimmed)) {
+                    urlObj = new URL(trimmed);
+                } else if (/^[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/.test(trimmed) && !trimmed.includes(' ')) {
+                    // Prepend https:// for parsing if standard domain format
+                    urlObj = new URL('https://' + trimmed);
+                }
+            } catch (err) {
+                urlObj = null;
+            }
+
+            if (urlObj) {
+                // Display URL analysis panel
+                urlAnalysisContainer.classList.remove('hidden');
+                urlDomainDisplay.textContent = urlObj.hostname;
+                safeOpenLinkBtn.href = urlObj.href;
+
+                let warnings = [];
+
+                // Check 1: Verify if protocol is HTTPS
+                const isHttps = urlObj.protocol === 'https:';
+                if (!isHttps) {
+                    warnings.push(`This link uses insecure protocol (${urlObj.protocol.toUpperCase()}). It is not encrypted with HTTPS.`);
+                }
+
+                // Check 2: Check for known link shorteners
+                const hostnameLower = urlObj.hostname.toLowerCase();
+                const isShortener = KNOWN_SHORTENERS.some(shortener => 
+                    hostnameLower === shortener || hostnameLower.endsWith('.' + shortener)
+                );
+
+                if (isShortener) {
+                    warnings.push(`This link uses a known URL shortener (${urlObj.hostname}), which hides the final destination URL.`);
+                }
+
+                // Render warnings if any
+                if (warnings.length > 0) {
+                    securityWarningBanner.classList.remove('hidden');
+                    securityWarningBanner.classList.add('flex');
+                    securityWarningText.textContent = warnings.join(' ');
+                } else {
+                    securityWarningBanner.classList.remove('flex');
+                    securityWarningBanner.classList.add('hidden');
+                }
+
+            } else {
+                // Not a URL, hide URL analysis panel
+                urlAnalysisContainer.classList.add('hidden');
+            }
+        }
+
+        /**
+         * Resets the result outputs and viewfinder.
+         */
+        function clearResults() {
+            outputTextArea.value = '';
+            urlAnalysisContainer.classList.add('hidden');
+            if (!isScanningActive) {
+                scannerPlaceholder.classList.remove('hidden');
+                canvasCtx.clearRect(0, 0, scannerCanvas.width, scannerCanvas.height);
+            }
+            showToast("Cleared results.");
+        }
+
+        // Event Listeners
+        startCameraBtn.addEventListener('click', startCamera);
+        stopCameraBtn.addEventListener('click', stopCamera);
+        fileUploadInput.addEventListener('change', handleFileUpload);
+        clearResultBtn.addEventListener('click', clearResults);
+
+        // Responsive canvas sizing setup on load
+        window.addEventListener('load', () => {
+            scannerCanvas.width = scannerCanvas.clientWidth || 640;
+            scannerCanvas.height = scannerCanvas.clientHeight || 400;
+        });
+    </script>
+</body>
+</html>
