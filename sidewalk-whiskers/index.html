@@ -1,0 +1,2168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sidewalk Whiskers — Feed & Pet Neighborhood Cats</title>
+  <!--
+    ============================================================================
+    PROJECT: Sidewalk Whiskers (v1.0 - initial build)
+    AUTHOR: Built as a self-contained single-file HTML5/CSS/Vanilla JS game
+    LIBRARIES USED: None! 100% pure browser-native HTML5 Canvas, Web Audio API
+                    (optional gentle synth purrs/meows), and semantic HTML/CSS.
+    PRIVACY: Zero network requests. Everything runs locally in your browser.
+    ============================================================================
+  -->
+  <style>
+    /* ==========================================================================
+       CSS VARIABLES & THEME TOKENS
+       Warm, cozy neighborhood palette with high contrast for accessibility.
+       ========================================================================== */
+    :root {
+      --bg-app: #1f1b24;
+      --bg-panel: #2b2533;
+      --bg-panel-soft: rgba(43, 37, 51, 0.92);
+      --text-primary: #fdf8f2;
+      --text-secondary: #d7cec7;
+      --accent-warm: #f59e0b;
+      --accent-warm-hover: #fbbf24;
+      --accent-coral: #fb7185;
+      --accent-coral-hover: #fda4af;
+      --accent-mint: #34d399;
+      --accent-sky: #38bdf8;
+      --border-subtle: rgba(255, 255, 255, 0.14);
+      --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.45);
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --focus-ring: 0 0 0 3px #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      background-color: var(--bg-app);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.45;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Accessible focus outlines for keyboard users */
+    :focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    /* Visually hidden utility for screen-reader live announcements */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ==========================================================================
+       APP SHELL LAYOUT (Responsive across mobile, tablet, and desktop)
+       ========================================================================== */
+    .app-shell {
+      min-height: 100dvh;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Top HUD Bar */
+    .hud-header {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 0.65rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .brand-title {
+      font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      color: var(--accent-warm);
+    }
+
+    .hud-stats {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.85rem;
+    }
+
+    .stat-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 0.35rem 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      color: #fff;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .hearts-display {
+      letter-spacing: 0.08em;
+      color: var(--accent-coral);
+    }
+
+    .pace-badge {
+      color: var(--accent-mint);
+    }
+
+    .hud-utility-btns {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ==========================================================================
+       MAIN STAGE (Canvas + Modal Overlays)
+       ========================================================================== */
+    .stage-wrapper {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 340px;
+      height: clamp(360px, 60dvh, 620px);
+      width: 100%;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      border: 2px solid var(--border-subtle);
+      box-shadow: var(--shadow-lg);
+      background: #87b5d6;
+      user-select: none;
+    }
+
+    canvas#cityCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+
+    /* Floating hint banner inside canvas top-left */
+    .stage-hint {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      background: rgba(26, 22, 32, 0.78);
+      backdrop-filter: blur(6px);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-pill);
+      padding: 0.35rem 0.85rem;
+      font-size: 0.82rem;
+      pointer-events: none;
+      max-width: calc(100% - 1.5rem);
+    }
+
+    /* ==========================================================================
+       OVERLAY SCREENS (Start, Pause, Game Over)
+       ========================================================================== */
+    .overlay-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 15, 24, 0.82);
+      backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      z-index: 20;
+    }
+
+    .overlay-backdrop[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      background: var(--bg-panel);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.25rem, 3vw, 2rem);
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .overlay-title {
+      font-size: clamp(1.5rem, 3.5vw, 2.1rem);
+      font-weight: 800;
+      color: var(--accent-warm);
+    }
+
+    .overlay-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+    }
+
+    .rules-list {
+      text-align: left;
+      background: rgba(0, 0, 0, 0.24);
+      border-radius: var(--radius-md);
+      padding: 0.9rem 1.1rem;
+      list-style: none;
+      display: grid;
+      gap: 0.5rem;
+      font-size: 0.92rem;
+      color: var(--text-primary);
+    }
+
+    .rules-list li::before {
+      content: "🐾 ";
+    }
+
+    .final-score-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin: 0.25rem 0;
+    }
+
+    .final-score-box {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem;
+    }
+
+    .final-score-box .big-num {
+      display: block;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent-warm);
+    }
+
+    /* ==========================================================================
+       CONTROLS BAR (Action Buttons + Movement Pad for Touch/Mouse)
+       ========================================================================== */
+    .controls-footer {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 0.75rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .move-controls,
+    .action-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    /* Tactile, accessible buttons */
+    .btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: var(--radius-md);
+      padding: 0.72rem 1.15rem;
+      min-height: 46px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      color: #18141c;
+      background: #e5e7eb;
+      box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+      transition: transform 0.08s ease, background-color 0.15s ease, filter 0.15s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      filter: brightness(1.06);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    .btn:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+    }
+
+    .btn-feed {
+      background: linear-gradient(180deg, #fbbf24, #f59e0b);
+      color: #1c1304;
+    }
+
+    .btn-pet {
+      background: linear-gradient(180deg, #fda4af, #fb7185);
+      color: #24070d;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #34d399, #10b981);
+      color: #052218;
+      font-size: 1.05rem;
+      padding: 0.85rem 1.5rem;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.22);
+      border-color: rgba(248, 113, 113, 0.45);
+      color: #fecaca;
+    }
+
+    .btn-small {
+      min-height: 38px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.86rem;
+    }
+
+    .kbd-hint {
+      font-size: 0.74rem;
+      font-weight: 700;
+      padding: 0.1rem 0.4rem;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.22);
+      color: inherit;
+    }
+
+    /* Respect Reduced Motion preference in CSS transitions */
+    @media (prefers-reduced-motion: reduce) {
+      .btn {
+        transition: none;
+      }
+      .btn:active:not(:disabled) {
+        transform: none;
+      }
+    }
+
+    /* Responsive adjustments for smaller mobile screens */
+    @media (max-width: 680px) {
+      .app-shell {
+        padding: 0.5rem;
+        gap: 0.5rem;
+      }
+      .controls-footer {
+        justify-content: center;
+      }
+      .move-controls,
+      .action-controls {
+        width: 100%;
+        justify-content: center;
+      }
+      .action-controls .btn {
+        flex: 1 1 auto;
+      }
+      .kbd-hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell" aria-label="Sidewalk Whiskers Cat Care Game">
+    <!-- ========================================================================
+         TOP HUD: Scores, Lives, Dynamic Feeding Rate, Sound & Pause Controls
+         ======================================================================== -->
+    <header class="hud-header">
+      <div class="brand-group">
+        <span aria-hidden="true" style="font-size: 1.45rem;">🐈</span>
+        <h1 class="brand-title">Sidewalk Whiskers</h1>
+      </div>
+
+      <div class="hud-stats" role="region" aria-label="Game Statistics">
+        <div class="stat-pill" title="Total cats fed">
+          <span aria-hidden="true">🍲</span>
+          <span>Cats Fed:</span>
+          <span id="fedCount" class="stat-value">0</span>
+        </div>
+
+        <div class="stat-pill" title="Total cats petted">
+          <span aria-hidden="true">💛</span>
+          <span>Cats Petted:</span>
+          <span id="pettedCount" class="stat-value">0</span>
+        </div>
+
+        <div class="stat-pill" title="Remaining cat patience hearts">
+          <span>Patience:</span>
+          <span id="livesDisplay" class="stat-value hearts-display" aria-label="5 lives remaining">♥♥♥♥♥</span>
+        </div>
+
+        <div class="stat-pill" title="Feeding speed adjusts automatically when multiple cats approach">
+          <span>Feeding Pace:</span>
+          <span id="feedingPaceDisplay" class="stat-value pace-badge">1.0x Normal</span>
+        </div>
+      </div>
+
+      <div class="hud-utility-btns">
+        <button type="button" id="soundToggleBtn" class="btn btn-secondary btn-small" aria-pressed="true" aria-label="Toggle gentle sound effects">
+          🔊 Sound On
+        </button>
+        <button type="button" id="pauseBtn" class="btn btn-secondary btn-small" aria-label="Pause game (Shortcut: P)">
+          ⏸ Pause <span class="kbd-hint">P</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- ========================================================================
+         INTERACTIVE CITY STREET STAGE (HTML5 Canvas + Accessible Overlays)
+         ======================================================================== -->
+    <section class="stage-wrapper" aria-label="City Street Play Area">
+      <canvas id="cityCanvas" role="img" aria-label="Animated city street scene with buildings, parked cars, a person walking on the sidewalk, and neighborhood cats approaching for food and pets."></canvas>
+
+      <div id="stageHint" class="stage-hint">
+        Walk with <strong>← / →</strong> (or tap the sidewalk). Press <strong>Feed a Cat</strong> or <strong>Pet a Cat</strong> when cats walk up!
+      </div>
+
+      <!-- Screen-reader live region for important game events -->
+      <div id="srStatus" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+      <!-- START SCREEN OVERLAY -->
+      <div id="startOverlay" class="overlay-backdrop" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+        <div class="overlay-card">
+          <div style="font-size: 2.5rem;" aria-hidden="true">🏙️🐈🍲</div>
+          <h2 id="startTitle" class="overlay-title">Sidewalk Whiskers</h2>
+          <p class="overlay-subtitle">
+            Take a relaxing stroll down Maple Avenue and care for the neighborhood's stray and friendly cats.
+          </p>
+          <ul class="rules-list">
+            <li><strong>Walk the sidewalk:</strong> Use Left/Right arrows, A/D keys, the Walk buttons, or tap anywhere on the sidewalk.</li>
+            <li><strong>Feed approaching cats:</strong> Press <em>Feed a Cat</em> to lean down and set a food bowl. When multiple cats approach at once, you automatically scoop and serve faster!</li>
+            <li><strong>Pet happy cats:</strong> Press <em>Pet a Cat</em> to kneel down—cats will rub their cheeks on your hand or weave happily around your feet.</li>
+            <li><strong>Watch their tails:</strong> Tail up means eager, tail down means shy, and a twitching tail means curious!</li>
+          </ul>
+          <button type="button" id="startBtn" class="btn btn-primary">
+            Start Walking
+          </button>
+        </div>
+      </div>
+
+      <!-- PAUSE SCREEN OVERLAY -->
+      <div id="pauseOverlay" class="overlay-backdrop" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden>
+        <div class="overlay-card">
+          <div style="font-size: 2.2rem;" aria-hidden="true">☕🐾</div>
+          <h2 id="pauseTitle" class="overlay-title">Game Paused</h2>
+          <p id="pauseReason" class="overlay-subtitle">
+            Taking a quick breather on the stoop. Your feline friends will wait right here.
+          </p>
+          <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+            <button type="button" id="resumeBtn" class="btn btn-primary">
+              Resume Walk
+            </button>
+            <button type="button" id="pauseEndBtn" class="btn btn-danger">
+              End Run
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME OVER SCREEN OVERLAY -->
+      <div id="gameOverOverlay" class="overlay-backdrop" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle" hidden>
+        <div class="overlay-card">
+          <div style="font-size: 2.3rem;" aria-hidden="true">🌙🐈‍⬛💛</div>
+          <h2 id="gameOverTitle" class="overlay-title">Stroll Complete!</h2>
+          <p id="gameOverReason" class="overlay-subtitle">
+            Thank you for looking after the neighborhood cats today.
+          </p>
+          <div class="final-score-grid">
+            <div class="final-score-box">
+              <span id="finalFed" class="big-num">0</span>
+              <span>Cats Fed 🍲</span>
+            </div>
+            <div class="final-score-box">
+              <span id="finalPetted" class="big-num">0</span>
+              <span>Cats Petted 💛</span>
+            </div>
+          </div>
+          <button type="button" id="playAgainBtn" class="btn btn-primary">
+            Play Again
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================
+         BOTTOM ACTION CONTROLS BAR
+         ======================================================================== -->
+    <footer class="controls-footer" aria-label="Game Controls">
+      <div class="move-controls" role="group" aria-label="Walk Controls">
+        <button type="button" id="walkLeftBtn" class="btn btn-secondary" aria-label="Walk Left">
+          ◀ Walk Left <span class="kbd-hint">← / A</span>
+        </button>
+        <button type="button" id="walkRightBtn" class="btn btn-secondary" aria-label="Walk Right">
+          Walk Right ▶ <span class="kbd-hint">→ / D</span>
+        </button>
+      </div>
+
+      <div class="action-controls" role="group" aria-label="Cat Care Actions">
+        <button type="button" id="feedBtn" class="btn btn-feed" aria-label="Feed a Cat (Shortcut: F or Space)">
+          🍲 Feed a Cat <span class="kbd-hint">F</span>
+        </button>
+        <button type="button" id="petBtn" class="btn btn-pet" aria-label="Pet a Cat (Shortcut: E or Enter)">
+          ✋ Pet a Cat <span class="kbd-hint">E</span>
+        </button>
+        <button type="button" id="gameOverBtn" class="btn btn-danger" aria-label="End Game Now">
+          Game Over
+        </button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    // v1.0 - initial build
+    "use strict";
+
+    /**
+     * ============================================================================
+     * GAME FEEL & TUNING SETTINGS
+     * All numbers that control speeds, sizes, lives, spawn timing, and feeding
+     * rates are gathered in this single clearly labeled configuration object.
+     * ============================================================================
+     */
+    const SETTINGS = {
+      // --- Lives & Patience ---
+      startingLives: 5,              // Number of hearts before Game Over if cats leave unfed
+      catPatienceSeconds: 18,        // How long an approaching cat waits before wandering away
+
+      // --- World & Player Movement ---
+      worldWidth: 1800,              // Total horizontal length of the city block in pixels
+      playerWalkSpeed: 230,          // Player walking speed (pixels per second)
+      playerReachDistance: 135,      // How close a cat must be to be fed or petted
+
+      // --- Cat Sizes & Speeds ---
+      catMinSpeed: 48,               // Slowest strolling cat speed (pixels per second)
+      catMaxSpeed: 128,              // Fastest trotting cat speed (pixels per second)
+      catSizeMinScale: 0.78,         // Smallest kitten scale multiplier
+      catSizeMaxScale: 1.32,         // Largest chonky cat scale multiplier
+
+      // --- Spawning & Crowd Limits ---
+      initialCatsOnStreet: 2,        // How many cats appear right when the walk begins
+      maxActiveCats: 7,              // Maximum number of cats on the sidewalk at once
+      spawnIntervalMin: 2.2,         // Minimum seconds between new cat arrivals
+      spawnIntervalMax: 4.8,         // Maximum seconds between new cat arrivals
+
+      // --- Dynamic Feeding Speed Settings ---
+      // Base time (in seconds) it takes the person to lean down & place a bowl,
+      // and base time it takes a cat to finish eating. Both scale dynamically with
+      // the number of cats currently approaching!
+      baseServeDuration: 0.85,       // Base seconds to place a food bowl (1 cat approaching)
+      baseEatDuration: 3.4,          // Base seconds for a cat to finish eating
+      feedSpeedBoostPerCat: 0.28,    // +28% faster feeding/eating per additional approaching cat
+      maxFeedSpeedMultiplier: 2.4,   // Cap on how fast feeding can accelerate in a crowd
+
+      // --- Petting Settings ---
+      petDuration: 1.65,             // Seconds the person kneels to pet a cat
+
+      // --- Motion & Visual Polish ---
+      enableCameraBob: true,         // Gentle camera sway when walking (auto-disabled if reduced motion)
+      particleCountPerHeart: 5       // Floating hearts/sparkles when petting (reduced if reduced motion)
+    };
+
+    /**
+     * ============================================================================
+     * ACCESSIBILITY & REDUCED MOTION DETECTION
+     * Checks the user's operating system/browser `prefers-reduced-motion` setting.
+     * When active, camera bobbing, flashing highlights, and particle bursts are
+     * calmed down automatically.
+     * ============================================================================
+     */
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let prefersReducedMotion = reducedMotionQuery.matches;
+
+    reducedMotionQuery.addEventListener("change", (event) => {
+      prefersReducedMotion = event.matches;
+    });
+
+    /**
+     * ============================================================================
+     * GENTLE WEB AUDIO SYNTHESIZER (Optional, Zero External Files)
+     * Synthesizes soft, cozy meows, kibble bowl clinks, and purr trills using
+     * the browser's native Web Audio API.
+     * ============================================================================
+     */
+    const SoundFX = {
+      enabled: true,
+      ctx: null,
+
+      // Lazily create or resume the AudioContext on first user interaction
+      ensureContext() {
+        if (!this.enabled) return null;
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) {
+            this.ctx = new AudioCtx();
+          }
+        }
+        if (this.ctx && this.ctx.state === "suspended") {
+          this.ctx.resume().catch(() => {});
+        }
+        return this.ctx;
+      },
+
+      // Play a gentle rising-falling cat meow
+      playMeow(pitchScale = 1.0) {
+        const ctx = this.ensureContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "triangle";
+        const baseFreq = 420 * pitchScale;
+        osc.frequency.setValueAtTime(baseFreq * 0.85, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.28, now + 0.14);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.78, now + 0.36);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.055, now + 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.38);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      },
+
+      // Play a soft ceramic bowl tap when placing food down
+      playFeedBowl() {
+        const ctx = this.ensureContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(660, now);
+        osc.frequency.exponentialRampToValueAtTime(320, now + 0.12);
+
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
+      },
+
+      // Play a warm harmonic chime/purr when petting a cat
+      playPetPurr() {
+        const ctx = this.ensureContext();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+        [523.25, 659.25].forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+
+          gain.gain.setValueAtTime(0.001, now + idx * 0.07);
+          gain.gain.linearRampToValueAtTime(0.045, now + idx * 0.07 + 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + idx * 0.07 + 0.35);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.38);
+        });
+      }
+    };
+
+    /**
+     * ============================================================================
+     * DOM REFERENCES & UI HELPERS
+     * ============================================================================
+     */
+    const canvas = document.getElementById("cityCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const ui = {
+      fedCount: document.getElementById("fedCount"),
+      pettedCount: document.getElementById("pettedCount"),
+      livesDisplay: document.getElementById("livesDisplay"),
+      feedingPaceDisplay: document.getElementById("feedingPaceDisplay"),
+      stageHint: document.getElementById("stageHint"),
+      srStatus: document.getElementById("srStatus"),
+
+      startOverlay: document.getElementById("startOverlay"),
+      pauseOverlay: document.getElementById("pauseOverlay"),
+      pauseReason: document.getElementById("pauseReason"),
+      gameOverOverlay: document.getElementById("gameOverOverlay"),
+      gameOverReason: document.getElementById("gameOverReason"),
+      finalFed: document.getElementById("finalFed"),
+      finalPetted: document.getElementById("finalPetted"),
+
+      startBtn: document.getElementById("startBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      resumeBtn: document.getElementById("resumeBtn"),
+      pauseEndBtn: document.getElementById("pauseEndBtn"),
+      playAgainBtn: document.getElementById("playAgainBtn"),
+      soundToggleBtn: document.getElementById("soundToggleBtn"),
+
+      walkLeftBtn: document.getElementById("walkLeftBtn"),
+      walkRightBtn: document.getElementById("walkRightBtn"),
+      feedBtn: document.getElementById("feedBtn"),
+      petBtn: document.getElementById("petBtn"),
+      gameOverBtn: document.getElementById("gameOverBtn")
+    };
+
+    // Announces short updates to screen readers without interrupting gameplay
+    let lastSrAnnouncement = 0;
+    function announceToScreenReader(message) {
+      const now = performance.now();
+      if (now - lastSrAnnouncement < 900) return;
+      lastSrAnnouncement = now;
+      ui.srStatus.textContent = message;
+    }
+
+    /**
+     * ============================================================================
+     * CITY SCENERY GENERATION (Buildings & Parked Cars)
+     * Procedurally generates a charming, deterministic city block so buildings
+     * and parked cars stay consistent as you walk up and down the street.
+     * ============================================================================
+     */
+    const CAT_COAT_TYPES = ["black", "tabby", "grey", "orange"];
+    const TAIL_MODES = ["up", "down", "twitching"];
+
+    let cityBuildings = [];
+    let parkedCars = [];
+
+    function buildCityScenery() {
+      cityBuildings = [];
+      parkedCars = [];
+
+      // Palette of warm city brick, brownstone, and painted facade colors
+      const buildingPalettes = [
+        { wall: "#8c4a3c", trim: "#5c2e24", awning: "#2d6a4f", label: "BAKERY" },
+        { wall: "#b5835a", trim: "#7a5233", awning: "#b91c1c", label: "BOOKS" },
+        { wall: "#576574", trim: "#38424d", awning: "#d97706", label: "CAFE" },
+        { wall: "#9c6644", trim: "#6b4228", awning: "#1d4ed8", label: "" },
+        { wall: "#7f5539", trim: "#523522", awning: "#047857", label: "FLORIST" },
+        { wall: "#6c757d", trim: "#495057", awning: "#9333ea", label: "" },
+        { wall: "#a45a52", trim: "#6e3832", awning: "#ca8a04", label: "MARKET" }
+      ];
+
+      let cursorX = -60;
+      let idx = 0;
+      while (cursorX < SETTINGS.worldWidth + 120) {
+        const width = 185 + ((idx * 47) % 85);
+        const height = 210 + ((idx * 63) % 110);
+        const palette = buildingPalettes[idx % buildingPalettes.length];
+        const floors = Math.floor(height / 68);
+        const cols = Math.max(2, Math.floor((width - 36) / 52));
+
+        cityBuildings.push({
+          x: cursorX,
+          width,
+          height,
+          floors,
+          cols,
+          hasFireEscape: idx % 2 === 1,
+          ...palette
+        });
+
+        cursorX += width + 6;
+        idx++;
+      }
+
+      // Create several parked cars along the street curb
+      const carConfigs = [
+        { x: 140, color: "#dc2626", type: "sedan" },
+        { x: 460, color: "#2563eb", type: "hatchback" },
+        { x: 820, color: "#eab308", type: "taxi" },
+        { x: 1170, color: "#059669", type: "wagon" },
+        { x: 1510, color: "#7c3aed", type: "sedan" }
+      ];
+
+      carConfigs.forEach((cfg, i) => {
+        parkedCars.push({
+          x: cfg.x,
+          width: cfg.type === "wagon" ? 156 : 138,
+          height: cfg.type === "hatchback" ? 48 : 44,
+          color: cfg.color,
+          type: cfg.type,
+          facing: i % 2 === 0 ? 1 : -1
+        });
+      });
+    }
+
+    /**
+     * ============================================================================
+     * CORE GAME STATE
+     * ============================================================================
+     */
+    const gameState = {
+      mode: "start", // "start" | "playing" | "paused" | "gameover"
+      catsFed: 0,
+      catsPetted: 0,
+      lives: SETTINGS.startingLives,
+      spawnTimer: 1.2,
+      elapsedTime: 0,
+      cameraX: 0,
+      targetWalkX: null, // Used when tapping/clicking a spot on the sidewalk
+
+      // Player character state
+      player: {
+        x: SETTINGS.worldWidth * 0.5,
+        facing: 1, // 1 = right, -1 = left
+        walkCycle: 0,
+        isMoving: false,
+        action: "idle", // "idle" | "feeding" | "petting"
+        actionTimer: 0,
+        actionDuration: 0,
+        targetCatId: null
+      },
+
+      // Active entities on the sidewalk
+      cats: [],
+      bowls: [],
+      particles: [],
+      floatingTexts: []
+    };
+
+    // Tracks keyboard and touch-hold directional inputs
+    const inputState = {
+      left: false,
+      right: false
+    };
+
+    let nextEntityId = 1;
+
+    /**
+     * ============================================================================
+     * DYNAMIC FEEDING RATE CALCULATOR
+     * Calculates how many cats are currently approaching or waiting for food.
+     * The more cats approaching at once, the faster the person serves bowls and
+     * the quicker cats eat so you can keep up with a hungry crowd!
+     * ============================================================================
+     */
+    function getApproachingCatCount() {
+      return gameState.cats.filter(
+        (cat) => cat.state === "approaching" || cat.state === "waiting"
+      ).length;
+    }
+
+    function getFeedingSpeedMultiplier() {
+      const approachingCount = getApproachingCatCount();
+      if (approachingCount <= 1) return 1.0;
+
+      const rawMultiplier =
+        1.0 + (approachingCount - 1) * SETTINGS.feedSpeedBoostPerCat;
+      return Math.min(SETTINGS.maxFeedSpeedMultiplier, rawMultiplier);
+    }
+
+    /**
+     * ============================================================================
+     * ENTITY FACTORIES (Cats, Bowls, Particles, Floating Feedback)
+     * ============================================================================
+     */
+    function spawnCat(forcedX = null) {
+      if (gameState.cats.length >= SETTINGS.maxActiveCats) return;
+
+      // Choose random coat color, size multiplier, speed, and tail behavior
+      const coat = CAT_COAT_TYPES[Math.floor(Math.random() * CAT_COAT_TYPES.length)];
+      const tailMode = TAIL_MODES[Math.floor(Math.random() * TAIL_MODES.length)];
+      const sizeScale =
+        SETTINGS.catSizeMinScale +
+        Math.random() * (SETTINGS.catSizeMaxScale - SETTINGS.catSizeMinScale);
+      const speed =
+        SETTINGS.catMinSpeed +
+        Math.random() * (SETTINGS.catMaxSpeed - SETTINGS.catMinSpeed);
+
+      // Spawn just off the left or right edge of the visible camera view
+      const viewHalf = canvas.clientWidth * 0.55;
+      const spawnFromLeft = Math.random() < 0.5;
+      let startX;
+      if (forcedX !== null) {
+        startX = forcedX;
+      } else if (spawnFromLeft) {
+        startX = Math.max(40, gameState.player.x - viewHalf - 50);
+      } else {
+        startX = Math.min(SETTINGS.worldWidth - 40, gameState.player.x + viewHalf + 50);
+      }
+
+      // Preferred standing offset near the player so multiple cats line up naturally
+      const preferredOffset = (Math.random() < 0.5 ? -1 : 1) * (46 + Math.random() * 52);
+
+      const cat = {
+        id: nextEntityId++,
+        x: startX,
+        facing: startX < gameState.player.x ? 1 : -1,
+        coat,
+        tailMode,
+        sizeScale,
+        speed,
+        preferredOffset,
+        walkPhase: Math.random() * Math.PI * 2,
+        tailPhase: Math.random() * Math.PI * 2,
+        state: "approaching", // "approaching" | "waiting" | "eating" | "petted" | "leaving"
+        patienceTimer: SETTINGS.catPatienceSeconds,
+        eatTimer: 0,
+        eatDuration: SETTINGS.baseEatDuration,
+        petTimer: 0,
+        petBehavior: Math.random() < 0.5 ? "rub" : "circle", // Rub cheek or walk around feet
+        circleAngle: 0,
+        bowlId: null,
+        hasBeenFed: false,
+        hasBeenPetted: false
+      };
+
+      gameState.cats.push(cat);
+      // Smaller cats have slightly higher-pitched meows
+      const pitch = 1.25 - (sizeScale - SETTINGS.catSizeMinScale) * 0.65;
+      SoundFX.playMeow(pitch);
+    }
+
+    function addFloatingText(x, y, text, color = "#fef08a") {
+      gameState.floatingTexts.push({
+        x,
+        y,
+        text,
+        color,
+        alpha: 1,
+        vy: prefersReducedMotion ? -10 : -26
+      });
+    }
+
+    function spawnHearts(x, y) {
+      const count = prefersReducedMotion ? 1 : SETTINGS.particleCountPerHeart;
+      for (let i = 0; i < count; i++) {
+        gameState.particles.push({
+          x: x + (Math.random() - 0.5) * 28,
+          y: y - 10 - Math.random() * 14,
+          vx: prefersReducedMotion ? 0 : (Math.random() - 0.5) * 26,
+          vy: prefersReducedMotion ? -12 : -28 - Math.random() * 20,
+          alpha: 1,
+          size: 11 + Math.random() * 5
+        });
+      }
+    }
+
+    /**
+     * ============================================================================
+     * PLAYER ACTIONS: FEED A CAT & PET A CAT
+     * ============================================================================
+     */
+    function findNearestCatForAction(actionType) {
+      const p = gameState.player;
+      let bestCat = null;
+      let bestDist = Infinity;
+
+      for (const cat of gameState.cats) {
+        if (cat.state === "leaving") continue;
+
+        // For feeding, prioritize hungry cats that aren't already eating
+        if (actionType === "feed") {
+          if (cat.state !== "approaching" && cat.state !== "waiting") continue;
+        }
+
+        // For petting, allow approaching, waiting, or eating cats within reach
+        if (actionType === "pet") {
+          if (cat.state === "petted") continue;
+        }
+
+        const dist = Math.abs(cat.x - p.x);
+        if (dist <= SETTINGS.playerReachDistance && dist < bestDist) {
+          bestDist = dist;
+          bestCat = cat;
+        }
+      }
+      return bestCat;
+    }
+
+    function triggerFeedCat() {
+      if (gameState.mode !== "playing") return;
+      const p = gameState.player;
+      if (p.action !== "idle") return;
+
+      const targetCat = findNearestCatForAction("feed");
+      if (!targetCat) {
+        addFloatingText(p.x, -118, "Wait for a cat to walk closer!", "#e2e8f0");
+        return;
+      }
+
+      // Cancel click-to-walk target when performing a care action
+      gameState.targetWalkX = null;
+
+      // Face toward the cat
+      p.facing = targetCat.x >= p.x ? 1 : -1;
+
+      // Calculate dynamic feeding speed based on approaching cat count
+      const speedMult = getFeedingSpeedMultiplier();
+      const serveDuration = SETTINGS.baseServeDuration / speedMult;
+
+      p.action = "feeding";
+      p.actionTimer = 0;
+      p.actionDuration = serveDuration;
+      p.targetCatId = targetCat.id;
+
+      // Place a bowl on the sidewalk between the player and the cat
+      const bowlX = p.x + p.facing * 32;
+      const bowl = {
+        id: nextEntityId++,
+        x: bowlX,
+        fillRatio: 1.0,
+        catId: targetCat.id
+      };
+      gameState.bowls.push(bowl);
+
+      // Transition the cat to eating from the placed bowl
+      targetCat.state = "eating";
+      targetCat.bowlId = bowl.id;
+      targetCat.x = bowlX + p.facing * 24;
+      targetCat.facing = -p.facing;
+      targetCat.eatTimer = 0;
+      targetCat.eatDuration = SETTINGS.baseEatDuration / speedMult;
+
+      if (!targetCat.hasBeenFed) {
+        targetCat.hasBeenFed = true;
+        gameState.catsFed += 1;
+        updateHud();
+        announceToScreenReader(`Fed a ${targetCat.coat} cat. Total cats fed: ${gameState.catsFed}.`);
+      }
+
+      SoundFX.playFeedBowl();
+      const speedLabel = speedMult > 1.05 ? ` (${speedMult.toFixed(1)}x speed!)` : "";
+      addFloatingText(bowlX, -58, `+1 Fed!${speedLabel}`, "#fbbf24");
+    }
+
+    function triggerPetCat() {
+      if (gameState.mode !== "playing") return;
+      const p = gameState.player;
+      if (p.action !== "idle") return;
+
+      const targetCat = findNearestCatForAction("pet");
+      if (!targetCat) {
+        addFloatingText(p.x, -118, "No cat within petting reach!", "#e2e8f0");
+        return;
+      }
+
+      gameState.targetWalkX = null;
+      p.facing = targetCat.x >= p.x ? 1 : -1;
+      p.action = "petting";
+      p.actionTimer = 0;
+      p.actionDuration = SETTINGS.petDuration;
+      p.targetCatId = targetCat.id;
+
+      // Clean up any bowl if the cat interrupts eating for affectionate pets
+      if (targetCat.bowlId !== null) {
+        gameState.bowls = gameState.bowls.filter((b) => b.id !== targetCat.bowlId);
+        targetCat.bowlId = null;
+      }
+
+      targetCat.state = "petted";
+      targetCat.petTimer = 0;
+      targetCat.circleAngle = targetCat.x >= p.x ? 0 : Math.PI;
+
+      if (!targetCat.hasBeenPetted) {
+        targetCat.hasBeenPetted = true;
+        gameState.catsPetted += 1;
+        updateHud();
+        announceToScreenReader(`Petted a ${targetCat.coat} cat. Total cats petted: ${gameState.catsPetted}.`);
+      }
+
+      SoundFX.playPetPurr();
+      spawnHearts(targetCat.x, -42 * targetCat.sizeScale);
+      const behaviorText =
+        targetCat.petBehavior === "rub" ? "Purr... cheek rub!" : "Happy figure-eights!";
+      addFloatingText(targetCat.x, -74, `+1 Petted! ${behaviorText}`, "#fda4af");
+    }
+
+    /**
+     * ============================================================================
+     * GAME LIFECYCLE CONTROLS (Start, Pause, Auto-Pause on Tab Switch, Game Over)
+     * ============================================================================
+     */
+    function resetGameData() {
+      gameState.catsFed = 0;
+      gameState.catsPetted = 0;
+      gameState.lives = SETTINGS.startingLives;
+      gameState.spawnTimer = 1.6;
+      gameState.elapsedTime = 0;
+      gameState.targetWalkX = null;
+
+      gameState.player.x = SETTINGS.worldWidth * 0.5;
+      gameState.player.facing = 1;
+      gameState.player.walkCycle = 0;
+      gameState.player.isMoving = false;
+      gameState.player.action = "idle";
+      gameState.player.actionTimer = 0;
+      gameState.player.targetCatId = null;
+
+      gameState.cats = [];
+      gameState.bowls = [];
+      gameState.particles = [];
+      gameState.floatingTexts = [];
+
+      buildCityScenery();
+
+      // Spawn initial friendly cats approaching from left and right
+      for (let i = 0; i < SETTINGS.initialCatsOnStreet; i++) {
+        const side = i % 2 === 0 ? -1 : 1;
+        spawnCat(gameState.player.x + side * (220 + i * 95));
+      }
+
+      updateHud();
+    }
+
+    function startNewGame() {
+      SoundFX.ensureContext();
+      resetGameData();
+      gameState.mode = "playing";
+      ui.startOverlay.hidden = true;
+      ui.pauseOverlay.hidden = true;
+      ui.gameOverOverlay.hidden = true;
+      announceToScreenReader("Walk started. Use left and right controls to move along the city sidewalk.");
+    }
+
+    function pauseGame(reasonText = "Taking a quick breather on the stoop. Your feline friends will wait right here.") {
+      if (gameState.mode !== "playing") return;
+      gameState.mode = "paused";
+      inputState.left = false;
+      inputState.right = false;
+      ui.pauseReason.textContent = reasonText;
+      ui.pauseOverlay.hidden = false;
+      ui.pauseBtn.innerHTML = '▶ Resume <span class="kbd-hint">P</span>';
+      ui.resumeBtn.focus();
+      announceToScreenReader("Game paused.");
+    }
+
+    function resumeGame() {
+      if (gameState.mode !== "paused") return;
+      gameState.mode = "playing";
+      ui.pauseOverlay.hidden = true;
+      ui.pauseBtn.innerHTML = '⏸ Pause <span class="kbd-hint">P</span>';
+      lastFrameTime = performance.now();
+      announceToScreenReader("Game resumed.");
+    }
+
+    function togglePause() {
+      if (gameState.mode === "playing") {
+        pauseGame();
+      } else if (gameState.mode === "paused") {
+        resumeGame();
+      }
+    }
+
+    function triggerGameOver(reasonText = "Thank you for looking after the neighborhood cats today.") {
+      if (gameState.mode === "gameover") return;
+      gameState.mode = "gameover";
+      inputState.left = false;
+      inputState.right = false;
+
+      ui.startOverlay.hidden = true;
+      ui.pauseOverlay.hidden = true;
+      ui.gameOverReason.textContent = reasonText;
+      ui.finalFed.textContent = String(gameState.catsFed);
+      ui.finalPetted.textContent = String(gameState.catsPetted);
+      ui.gameOverOverlay.hidden = false;
+      ui.playAgainBtn.focus();
+      announceToScreenReader(
+        `Game over. You fed ${gameState.catsFed} cats and petted ${gameState.catsPetted} cats.`
+      );
+    }
+
+    // Automatically pause when switching browser tabs or minimizing the window
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden && gameState.mode === "playing") {
+        pauseGame("Automatically paused while you switched to another tab.");
+      }
+    });
+
+    window.addEventListener("blur", () => {
+      if (gameState.mode === "playing") {
+        pauseGame("Automatically paused while the window was inactive.");
+      }
+    });
+
+    /**
+     * ============================================================================
+     * HUD SYNCHRONIZATION
+     * ============================================================================
+     */
+    function updateHud() {
+      ui.fedCount.textContent = String(gameState.catsFed);
+      ui.pettedCount.textContent = String(gameState.catsPetted);
+
+      const filledHearts = "♥".repeat(Math.max(0, gameState.lives));
+      const emptyHearts = "♡".repeat(Math.max(0, SETTINGS.startingLives - gameState.lives));
+      ui.livesDisplay.textContent = filledHearts + emptyHearts;
+      ui.livesDisplay.setAttribute("aria-label", `${gameState.lives} of ${SETTINGS.startingLives} patience hearts remaining`);
+
+      const pace = getFeedingSpeedMultiplier();
+      const approaching = getApproachingCatCount();
+      let paceLabel = `${pace.toFixed(1)}x Normal`;
+      if (approaching >= 3) {
+        paceLabel = `${pace.toFixed(1)}x Rush (${approaching} cats!)`;
+      } else if (approaching === 2) {
+        paceLabel = `${pace.toFixed(1)}x Brisk (2 cats)`;
+      }
+      ui.feedingPaceDisplay.textContent = paceLabel;
+
+      // Highlight Feed/Pet buttons subtly when a cat is within reach
+      const canFeed = gameState.mode === "playing" && Boolean(findNearestCatForAction("feed"));
+      const canPet = gameState.mode === "playing" && Boolean(findNearestCatForAction("pet"));
+      ui.feedBtn.disabled = !canFeed && gameState.mode === "playing" ? false : false;
+      ui.feedBtn.style.outline =
+        canFeed && !prefersReducedMotion ? "2px solid #fef08a" : "none";
+      ui.petBtn.style.outline =
+        canPet && !prefersReducedMotion ? "2px solid #ffe4e6" : "none";
+    }
+
+    /**
+     * ============================================================================
+     * SIMULATION UPDATE LOOP (Fixed-capped delta time)
+     * ============================================================================
+     */
+    function updateSimulation(dt) {
+      if (gameState.mode !== "playing") return;
+
+      gameState.elapsedTime += dt;
+      const p = gameState.player;
+
+      // 1. Update Player Action Timer (Leaning down to feed or kneel to pet)
+      if (p.action !== "idle") {
+        p.actionTimer += dt;
+        if (p.actionTimer >= p.actionDuration) {
+          p.action = "idle";
+          p.actionTimer = 0;
+          p.targetCatId = null;
+        }
+      }
+
+      // 2. Update Player Horizontal Walking along the Sidewalk
+      let moveDir = 0;
+      if (inputState.left) moveDir -= 1;
+      if (inputState.right) moveDir += 1;
+
+      if (moveDir !== 0) {
+        gameState.targetWalkX = null;
+      } else if (gameState.targetWalkX !== null && p.action === "idle") {
+        const diff = gameState.targetWalkX - p.x;
+        if (Math.abs(diff) > 6) {
+          moveDir = Math.sign(diff);
+        } else {
+          gameState.targetWalkX = null;
+        }
+      }
+
+      if (moveDir !== 0 && p.action === "idle") {
+        p.facing = moveDir;
+        p.x += moveDir * SETTINGS.playerWalkSpeed * dt;
+        p.x = Math.max(70, Math.min(SETTINGS.worldWidth - 70, p.x));
+        p.walkCycle += dt * 9.5;
+        p.isMoving = true;
+      } else {
+        p.isMoving = false;
+      }
+
+      // 3. Smooth Camera Follow centered on the player
+      const viewWidth = canvas.clientWidth;
+      const desiredCamX = Math.max(
+        0,
+        Math.min(SETTINGS.worldWidth - viewWidth, p.x - viewWidth * 0.5)
+      );
+      gameState.cameraX += (desiredCamX - gameState.cameraX) * Math.min(1, dt * 7.5);
+
+      // 4. Spawn New Approaching Cats Periodically
+      gameState.spawnTimer -= dt;
+      if (gameState.spawnTimer <= 0) {
+        spawnCat();
+        gameState.spawnTimer =
+          SETTINGS.spawnIntervalMin +
+          Math.random() * (SETTINGS.spawnIntervalMax - SETTINGS.spawnIntervalMin);
+      }
+
+      // 5. Update All Cats on the Sidewalk
+      const currentFeedMult = getFeedingSpeedMultiplier();
+
+      for (let i = gameState.cats.length - 1; i >= 0; i--) {
+        const cat = gameState.cats[i];
+        cat.tailPhase += dt * (cat.tailMode === "twitching" ? 13 : 4.2);
+
+        if (cat.state === "approaching" || cat.state === "waiting") {
+          const targetX = p.x + cat.preferredOffset;
+          const distToTarget = targetX - cat.x;
+
+          if (Math.abs(distToTarget) > 8) {
+            cat.state = "approaching";
+            cat.facing = Math.sign(distToTarget);
+            cat.x += cat.facing * cat.speed * dt;
+            cat.walkPhase += dt * (cat.speed * 0.14);
+          } else {
+            cat.state = "waiting";
+            cat.facing = p.x >= cat.x ? 1 : -1;
+          }
+
+          // Count down patience while waiting for food
+          cat.patienceTimer -= dt;
+          if (cat.patienceTimer <= 0) {
+            cat.state = "leaving";
+            cat.facing = cat.x < p.x ? -1 : 1;
+            gameState.lives = Math.max(0, gameState.lives - 1);
+            addFloatingText(cat.x, -66, "Cat wandered off... -1 Heart", "#fca5a5");
+            announceToScreenReader(
+              `A cat wandered away unfed. ${gameState.lives} patience hearts left.`
+            );
+            if (gameState.lives <= 0) {
+              updateHud();
+              triggerGameOver("All neighborhood cats wandered off for naps. Ready for another stroll?");
+              return;
+            }
+          }
+        } else if (cat.state === "eating") {
+          // Eating rate dynamically scales with how many cats are approaching!
+          cat.eatTimer += dt * (currentFeedMult / Math.max(1, currentFeedMult * 0.85));
+          const progress = Math.min(1, cat.eatTimer / cat.eatDuration);
+
+          const bowl = gameState.bowls.find((b) => b.id === cat.bowlId);
+          if (bowl) {
+            bowl.fillRatio = Math.max(0, 1 - progress);
+          }
+
+          if (progress >= 1) {
+            // Finished meal! Remove bowl and have the satisfied cat stroll away
+            gameState.bowls = gameState.bowls.filter((b) => b.id !== cat.bowlId);
+            cat.bowlId = null;
+            cat.state = "leaving";
+            cat.tailMode = "up";
+            cat.facing = Math.random() < 0.5 ? -1 : 1;
+            addFloatingText(cat.x, -62, "Full tummy! 🐾", "#86efac");
+          }
+        } else if (cat.state === "petted") {
+          cat.petTimer += dt;
+
+          if (cat.petBehavior === "rub") {
+            // Gently nuzzle against the person's lowered hand
+            const handX = p.x + p.facing * 32;
+            cat.x += (handX - cat.x) * Math.min(1, dt * 8);
+            cat.facing = -p.facing;
+          } else {
+            // Walk playfully in a circle around the person's feet
+            cat.circleAngle += dt * 4.2;
+            const orbitOffset = Math.cos(cat.circleAngle) * 44;
+            const nextX = p.x + orbitOffset;
+            cat.facing = nextX >= cat.x ? 1 : -1;
+            cat.x = nextX;
+            cat.walkPhase += dt * 11;
+          }
+
+          if (cat.petTimer >= SETTINGS.petDuration) {
+            // If already fed, stroll happily away; otherwise wait for a snack
+            if (cat.hasBeenFed) {
+              cat.state = "leaving";
+              cat.tailMode = "up";
+            } else {
+              cat.state = "waiting";
+              cat.patienceTimer = Math.min(
+                SETTINGS.catPatienceSeconds,
+                cat.patienceTimer + 6
+              );
+            }
+          }
+        } else if (cat.state === "leaving") {
+          cat.x += cat.facing * (cat.speed * 1.15) * dt;
+          cat.walkPhase += dt * 10;
+
+          // Remove cat once safely offscreen
+          if (
+            cat.x < gameState.cameraX - 180 ||
+            cat.x > gameState.cameraX + viewWidth + 180 ||
+            cat.x < -80 ||
+            cat.x > SETTINGS.worldWidth + 80
+          ) {
+            gameState.cats.splice(i, 1);
+          }
+        }
+      }
+
+      // 6. Update Floating Heart Particles & Score Popups
+      for (let i = gameState.particles.length - 1; i >= 0; i--) {
+        const pt = gameState.particles[i];
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.alpha -= dt * 0.95;
+        if (pt.alpha <= 0) {
+          gameState.particles.splice(i, 1);
+        }
+      }
+
+      for (let i = gameState.floatingTexts.length - 1; i >= 0; i--) {
+        const ft = gameState.floatingTexts[i];
+        ft.y += ft.vy * dt;
+        ft.alpha -= dt * 0.72;
+        if (ft.alpha <= 0) {
+          gameState.floatingTexts.splice(i, 1);
+        }
+      }
+
+      updateHud();
+    }
+
+    /**
+     * ============================================================================
+     * CANVAS RENDERING (City Street, Buildings, Parked Cars, Person, Cats)
+     * ============================================================================
+     */
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(300, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(240, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Helper for rounded rectangles on Canvas
+    function drawRoundedRect(x, y, w, h, r) {
+      const radius = Math.min(r, w * 0.5, h * 0.5);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+    }
+
+    function renderScene() {
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+
+      // Ground coordinates relative to responsive canvas height
+      const roadHeight = Math.max(66, height * 0.18);
+      const sidewalkHeight = Math.max(58, height * 0.15);
+      const roadTopY = height - roadHeight;
+      const sidewalkTopY = roadTopY - sidewalkHeight;
+      const sidewalkSurfaceY = sidewalkTopY + sidewalkHeight * 0.62;
+
+      // Gentle walking camera bob (disabled when prefers-reduced-motion is active)
+      const camBobY =
+        SETTINGS.enableCameraBob && !prefersReducedMotion && gameState.player.isMoving
+          ? Math.sin(gameState.player.walkCycle * 2) * 1.5
+          : 0;
+
+      ctx.save();
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Warm Golden-Afternoon Sky Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, sidewalkTopY);
+      skyGrad.addColorStop(0, "#5b8fb9");
+      skyGrad.addColorStop(0.55, "#b6d0e2");
+      skyGrad.addColorStop(1, "#f6d7b0");
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, sidewalkTopY + 4);
+
+      // Distant city skyline silhouette (slow parallax)
+      ctx.fillStyle = "rgba(67, 85, 112, 0.28)";
+      const skylineOffset = -gameState.cameraX * 0.2;
+      for (let sx = -100; sx < SETTINGS.worldWidth; sx += 130) {
+        const bh = 110 + ((sx * 19) % 95);
+        ctx.fillRect(sx + skylineOffset, sidewalkTopY - bh - 35, 108, bh + 35);
+      }
+
+      // Translate into world coordinates for buildings, sidewalk, person, cats, and cars
+      ctx.save();
+      ctx.translate(-gameState.cameraX, camBobY);
+
+      // 2. Foreground City Buildings behind the Sidewalk
+      for (const b of cityBuildings) {
+        if (b.x + b.width < gameState.cameraX - 40 || b.x > gameState.cameraX + width + 40) {
+          continue;
+        }
+
+        const topY = sidewalkTopY - b.height;
+
+        // Main facade
+        ctx.fillStyle = b.wall;
+        ctx.fillRect(b.x, topY, b.width, b.height);
+
+        // Roof cornice ledge
+        ctx.fillStyle = b.trim;
+        ctx.fillRect(b.x - 4, topY - 10, b.width + 8, 12);
+
+        // Upper apartment windows
+        const winW = 28;
+        const winH = 38;
+        const colSpacing = (b.width - 28) / b.cols;
+        for (let r = 0; r < b.floors - 1; r++) {
+          const wy = topY + 22 + r * 62;
+          for (let c = 0; c < b.cols; c++) {
+            const wx = b.x + 18 + c * colSpacing;
+            // Window frame
+            ctx.fillStyle = "#fef3c7";
+            ctx.fillRect(wx - 2, wy - 2, winW + 4, winH + 4);
+            // Warm sunlit glass
+            ctx.fillStyle = (r + c) % 3 === 0 ? "#fde68a" : "#334155";
+            ctx.fillRect(wx, wy, winW, winH);
+            // Window pane crossbars
+            ctx.fillStyle = "#fef3c7";
+            ctx.fillRect(wx, wy + winH * 0.48, winW, 2);
+          }
+        }
+
+        // Ground-floor storefront or brownstone stoop
+        const doorX = b.x + 20;
+        const doorY = sidewalkTopY - 56;
+        ctx.fillStyle = b.trim;
+        ctx.fillRect(doorX, doorY, 34, 56);
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.arc(doorX + 27, doorY + 30, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Storefront window & striped awning
+        const shopWinX = b.x + 66;
+        const shopWinW = b.width - 84;
+        if (shopWinW > 36) {
+          ctx.fillStyle = "#fef9c3";
+          ctx.fillRect(shopWinX, sidewalkTopY - 50, shopWinW, 38);
+
+          // Awning
+          ctx.fillStyle = b.awning;
+          drawRoundedRect(shopWinX - 6, sidewalkTopY - 64, shopWinW + 12, 18, 5);
+          ctx.fill();
+
+          if (b.label) {
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(b.label, shopWinX + shopWinW * 0.5, sidewalkTopY - 51);
+          }
+        }
+
+        // Optional fire escape ladder
+        if (b.hasFireEscape) {
+          ctx.strokeStyle = "#1e293b";
+          ctx.lineWidth = 2;
+          const feX = b.x + b.width - 42;
+          ctx.strokeRect(feX, topY + 26, 32, b.height - 95);
+          for (let fy = topY + 42; fy < sidewalkTopY - 70; fy += 24) {
+            ctx.beginPath();
+            ctx.moveTo(feX, fy);
+            ctx.lineTo(feX + 32, fy);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // 3. Concrete Sidewalk & Curb
+      ctx.fillStyle = "#cbd5e1";
+      ctx.fillRect(-100, sidewalkTopY, SETTINGS.worldWidth + 200, sidewalkHeight);
+
+      // Sidewalk expansion joint lines
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 1.5;
+      for (let gx = 0; gx <= SETTINGS.worldWidth; gx += 75) {
+        ctx.beginPath();
+        ctx.moveTo(gx, sidewalkTopY);
+        ctx.lineTo(gx - 12, roadTopY);
+        ctx.stroke();
+      }
+
+      // Curb edge
+      ctx.fillStyle = "#64748b";
+      ctx.fillRect(-100, roadTopY - 7, SETTINGS.worldWidth + 200, 9);
+
+      // 4. Asphalt Street & Dashed Center Line
+      ctx.fillStyle = "#334155";
+      ctx.fillRect(-100, roadTopY, SETTINGS.worldWidth + 200, roadHeight + 20);
+
+      ctx.strokeStyle = "#facc15";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([28, 24]);
+      ctx.beginPath();
+      ctx.moveTo(-50, roadTopY + roadHeight * 0.56);
+      ctx.lineTo(SETTINGS.worldWidth + 50, roadTopY + roadHeight * 0.56);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 5. Food Bowls on the Sidewalk
+      for (const bowl of gameState.bowls) {
+        drawFoodBowl(bowl.x, sidewalkSurfaceY + 4, bowl.fillRatio);
+      }
+
+      // 6. Player Character walking on the Sidewalk
+      drawPlayerCharacter(gameState.player, sidewalkSurfaceY);
+
+      // 7. Neighborhood Cats (sorted slightly by size so foreground kittens pop)
+      const sortedCats = [...gameState.cats].sort((a, b) => a.sizeScale - b.sizeScale);
+      for (const cat of sortedCats) {
+        drawCat(cat, sidewalkSurfaceY + 5);
+      }
+
+      // 8. Parked Cars along the Street
+      const carGroundY = roadTopY + roadHeight * 0.44;
+      for (const car of parkedCars) {
+        if (car.x + car.width < gameState.cameraX - 60 || car.x > gameState.cameraX + width + 60) {
+          continue;
+        }
+        drawParkedCar(car, carGroundY);
+      }
+
+      // 9. Floating Hearts & Score Popups
+      for (const pt of gameState.particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, pt.alpha);
+        ctx.font = `${Math.round(pt.size)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText("💛", pt.x, sidewalkSurfaceY + pt.y);
+        ctx.restore();
+      }
+
+      for (const ft of gameState.floatingTexts) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.alpha);
+        ctx.font = "bold 14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(15, 23, 42, 0.78)";
+        const metrics = ctx.measureText(ft.text);
+        drawRoundedRect(
+          ft.x - metrics.width * 0.5 - 8,
+          sidewalkSurfaceY + ft.y - 14,
+          metrics.width + 16,
+          20,
+          8
+        );
+        ctx.fill();
+        ctx.fillStyle = ft.color;
+        ctx.fillText(ft.text, ft.x, sidewalkSurfaceY + ft.y);
+        ctx.restore();
+      }
+
+      ctx.restore();
+      ctx.restore();
+    }
+
+    /**
+     * Draw a ceramic cat food bowl with kibble mound
+     */
+    function drawFoodBowl(x, groundY, fillRatio) {
+      ctx.save();
+      ctx.translate(x, groundY);
+
+      // Shadow
+      ctx.fillStyle = "rgba(15, 23, 42, 0.25)";
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 15, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Kibble mound (shrinks as the cat eats)
+      if (fillRatio > 0.05) {
+        ctx.fillStyle = "#92400e";
+        ctx.beginPath();
+        ctx.ellipse(0, -6, 11 * Math.sqrt(fillRatio), 5 * fillRatio, 0, Math.PI, 0);
+        ctx.fill();
+      }
+
+      // Bowl dish
+      ctx.fillStyle = "#f97316";
+      ctx.beginPath();
+      ctx.moveTo(-13, -6);
+      ctx.lineTo(13, -6);
+      ctx.lineTo(10, 2);
+      ctx.lineTo(-10, 2);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "#9a3412";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    /**
+     * Draw the player person (standing/walking, leaning down to feed, or kneeling to pet)
+     */
+    function drawPlayerCharacter(p, groundY) {
+      ctx.save();
+      ctx.translate(p.x, groundY);
+
+      // Ground contact shadow
+      ctx.fillStyle = "rgba(15, 23, 42, 0.28)";
+      ctx.beginPath();
+      ctx.ellipse(0, 3, 22, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.scale(p.facing, 1);
+
+      const isCrouching = p.action === "feeding" || p.action === "petting";
+      const crouchOffset = isCrouching ? 24 : 0;
+      const leanAngle = p.action === "feeding" ? 0.34 : p.action === "petting" ? 0.28 : 0;
+
+      // Walking leg stride
+      const stride = p.isMoving ? Math.sin(p.walkCycle) * 11 : 0;
+
+      // Back Leg
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 8;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-3, -44 + crouchOffset * 0.5);
+      ctx.lineTo(-3 - stride, -4);
+      ctx.stroke();
+
+      // Front Leg
+      ctx.strokeStyle = "#334155";
+      ctx.beginPath();
+      ctx.moveTo(4, -44 + crouchOffset * 0.5);
+      ctx.lineTo(4 + stride, -4);
+      ctx.stroke();
+
+      // Shoes
+      ctx.fillStyle = "#f8fafc";
+      drawRoundedRect(-9 - stride, -7, 14, 7, 3);
+      ctx.fill();
+      drawRoundedRect(-2 + stride, -7, 14, 7, 3);
+      ctx.fill();
+
+      // Torso & Head group (rotates forward when leaning down to feed/pet)
+      ctx.save();
+      ctx.translate(0, -44 + crouchOffset * 0.65);
+      ctx.rotate(leanAngle);
+
+      // Cozy sweater
+      ctx.fillStyle = "#0d9488";
+      drawRoundedRect(-13, -42, 26, 44, 10);
+      ctx.fill();
+
+      // Scarf accent
+      ctx.fillStyle = "#fbbf24";
+      drawRoundedRect(-12, -43, 24, 8, 4);
+      ctx.fill();
+
+      // Head
+      ctx.fillStyle = "#f3c6a5";
+      ctx.beginPath();
+      ctx.arc(2, -56, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair / Beanie
+      ctx.fillStyle = "#3b2f2f";
+      ctx.beginPath();
+      ctx.arc(0, -59, 14.5, Math.PI * 0.92, Math.PI * 2.08);
+      ctx.fill();
+
+      // Friendly eye & smile
+      ctx.fillStyle = "#1e293b";
+      ctx.beginPath();
+      ctx.arc(8, -56, 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#7c2d12";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(7, -52, 4, 0.1, Math.PI * 0.75);
+      ctx.stroke();
+
+      // Arm extending down toward the food bowl or cat when caring
+      ctx.strokeStyle = "#0f766e";
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      if (isCrouching) {
+        ctx.moveTo(4, -32);
+        ctx.lineTo(24, 14);
+      } else {
+        const armSwing = p.isMoving ? -stride * 0.8 : 0;
+        ctx.moveTo(2, -32);
+        ctx.lineTo(4 + armSwing, -8);
+      }
+      ctx.stroke();
+
+      // Hand
+      ctx.fillStyle = "#f3c6a5";
+      ctx.beginPath();
+      if (isCrouching) {
+        ctx.arc(25, 16, 4.5, 0, Math.PI * 2);
+      } else {
+        const armSwing = p.isMoving ? -stride * 0.8 : 0;
+        ctx.arc(4 + armSwing, -7, 4, 0, Math.PI * 2);
+      }
+      ctx.fill();
+
+      ctx.restore();
+      ctx.restore();
+    }
+
+    /**
+     * Draw an expressive neighborhood cat (Black, Tabby, Grey, or Orange)
+     * with animated tail (up, down, or twitching) and state indicators.
+     */
+    function drawCat(cat, groundY) {
+      const coatPalettes = {
+        black: { body: "#1e1e24", stripe: "#111115", belly: "#2e2e38", eye: "#fde047", nose: "#fda4af" },
+        tabby: { body: "#a17a58", stripe: "#5c4028", belly: "#d6bea6", eye: "#86efac", nose: "#fb7185" },
+        grey: { body: "#8e96a0", stripe: "#646c75", belly: "#cbd5e1", eye: "#38bdf8", nose: "#fda4af" },
+        orange: { body: "#ea7c28", stripe: "#b84d0b", belly: "#fed7aa", eye: "#bef264", nose: "#fb7185" }
+      };
+
+      const colors = coatPalettes[cat.coat] || coatPalettes.tabby;
+
+      ctx.save();
+      ctx.translate(cat.x, groundY);
+      ctx.scale(cat.facing * cat.sizeScale, cat.sizeScale);
+
+      // Soft ground shadow
+      ctx.fillStyle = "rgba(15, 23, 42, 0.24)";
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 18, 4.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Animated Tail (up, down, or twitching)
+      ctx.strokeStyle = colors.body;
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(-14, -15);
+
+      if (cat.tailMode === "up") {
+        const sway = Math.sin(cat.tailPhase) * 3;
+        ctx.quadraticCurveTo(-22, -32, -16 + sway, -42);
+      } else if (cat.tailMode === "down") {
+        const sway = Math.sin(cat.tailPhase) * 2;
+        ctx.quadraticCurveTo(-24, -10, -22 + sway, -2);
+      } else {
+        // Twitching tail tip
+        const twitch = Math.sin(cat.tailPhase) * 7;
+        ctx.quadraticCurveTo(-24, -24, -20 + twitch, -34);
+      }
+      ctx.stroke();
+
+      // Walking paws animation
+      const isWalking = cat.state === "approaching" || cat.state === "leaving" || (cat.state === "petted" && cat.petBehavior === "circle");
+      const legBob = isWalking ? Math.sin(cat.walkPhase) * 4 : 0;
+
+      ctx.fillStyle = colors.body;
+      drawRoundedRect(-12 + legBob, -10, 5, 10, 2.5);
+      ctx.fill();
+      drawRoundedRect(7 - legBob, -10, 5, 10, 2.5);
+      ctx.fill();
+
+      // Torso
+      const bodyBounce = isWalking ? Math.abs(Math.sin(cat.walkPhase)) * 1.8 : 0;
+      ctx.fillStyle = colors.body;
+      drawRoundedRect(-16, -23 - bodyBounce, 32, 16, 8);
+      ctx.fill();
+
+      // Tabby / Orange / Grey dorsal stripes
+      if (cat.coat !== "black") {
+        ctx.fillStyle = colors.stripe;
+        drawRoundedRect(-8, -23 - bodyBounce, 3.5, 8, 1.5);
+        ctx.fill();
+        drawRoundedRect(-1, -23 - bodyBounce, 3.5, 9, 1.5);
+        ctx.fill();
+        drawRoundedRect(6, -23 - bodyBounce, 3.5, 7, 1.5);
+        ctx.fill();
+      }
+
+      // Head (lowers down when eating from a bowl)
+      const headDropY = cat.state === "eating" ? 10 : 0;
+      const headDropX = cat.state === "eating" ? 4 : 0;
+      const headX = 14 + headDropX;
+      const headY = -24 - bodyBounce + headDropY;
+
+      // Ears
+      ctx.fillStyle = colors.body;
+      ctx.beginPath();
+      ctx.moveTo(headX - 7, headY - 6);
+      ctx.lineTo(headX - 4, headY - 16);
+      ctx.lineTo(headX + 1, headY - 7);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(headX + 1, headY - 7);
+      ctx.lineTo(headX + 6, headY - 16);
+      ctx.lineTo(headX + 8, headY - 6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Head circle
+      ctx.beginPath();
+      ctx.arc(headX, headY, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Eyes (happy closed arcs when eating or being petted!)
+      if (cat.state === "eating" || cat.state === "petted") {
+        ctx.strokeStyle = colors.eye;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.arc(headX + 3.5, headY - 1.5, 2.5, Math.PI, 0);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = colors.eye;
+        ctx.beginPath();
+        ctx.arc(headX + 4, headY - 1.5, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Pink nose & whiskers
+      ctx.fillStyle = colors.nose;
+      ctx.beginPath();
+      ctx.arc(headX + 8.5, headY + 1.5, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.55)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(headX + 7, headY + 2);
+      ctx.lineTo(headX + 15, headY + 0.5);
+      ctx.moveTo(headX + 7, headY + 3);
+      ctx.lineTo(headX + 15, headY + 4.5);
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Patience indicator bubble when waiting for food
+      if (cat.state === "approaching" || cat.state === "waiting") {
+        const patienceRatio = Math.max(0, cat.patienceTimer / SETTINGS.catPatienceSeconds);
+        const bubbleY = groundY - 46 * cat.sizeScale - 14;
+        ctx.save();
+        ctx.fillStyle = "rgba(15, 23, 42, 0.72)";
+        drawRoundedRect(cat.x - 16, bubbleY - 12, 32, 16, 8);
+        ctx.fill();
+
+        ctx.fillStyle = patienceRatio < 0.3 ? "#f87171" : "#fbbf24";
+        ctx.font = "bold 10px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("🍲?", cat.x, bubbleY - 1);
+        ctx.restore();
+      }
+    }
+
+    /**
+     * Draw a parked car on the street foreground
+     */
+    function drawParkedCar(car, groundY) {
+      ctx.save();
+      ctx.translate(car.x, groundY);
+
+      // Car shadow
+      ctx.fillStyle = "rgba(15, 23, 42, 0.42)";
+      ctx.beginPath();
+      ctx.ellipse(car.width * 0.5, 16, car.width * 0.52, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Cabin roof
+      ctx.fillStyle = car.color;
+      const cabinX = car.type === "wagon" ? 18 : 26;
+      const cabinW = car.type === "wagon" ? car.width - 36 : car.width - 52;
+      drawRoundedRect(cabinX, -car.height, cabinW, 24, 11);
+      ctx.fill();
+
+      // Windows
+      ctx.fillStyle = "#bae6fd";
+      drawRoundedRect(cabinX + 8, -car.height + 4, cabinW * 0.44, 15, 4);
+      ctx.fill();
+      drawRoundedRect(cabinX + cabinW * 0.52, -car.height + 4, cabinW * 0.4, 15, 4);
+      ctx.fill();
+
+      // Lower chassis
+      ctx.fillStyle = car.color;
+      drawRoundedRect(0, -22, car.width, 28, 9);
+      ctx.fill();
+
+      // Taxi checker stripe if taxi
+      if (car.type === "taxi") {
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(14, -10, car.width - 28, 4);
+      }
+
+      // Headlights & Taillights
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(car.width - 6, -15, 6, 7);
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(0, -15, 5, 7);
+
+      // Wheels
+      [28, car.width - 28].forEach((wx) => {
+        ctx.fillStyle = "#0f172a";
+        ctx.beginPath();
+        ctx.arc(wx, 8, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#cbd5e1";
+        ctx.beginPath();
+        ctx.arc(wx, 8, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.restore();
+    }
+
+    /**
+     * ============================================================================
+     * INPUT LISTENERS (Keyboard, Buttons, Canvas Tap-to-Walk)
+     * ============================================================================
+     */
+    window.addEventListener("keydown", (e) => {
+      // Allow P to toggle pause from playing or paused states
+      if (e.key === "p" || e.key === "P") {
+        if (gameState.mode === "playing" || gameState.mode === "paused") {
+          e.preventDefault();
+          togglePause();
+        }
+        return;
+      }
+
+      if (gameState.mode !== "playing") return;
+
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        inputState.left = true;
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        inputState.right = true;
+      } else if (e.key === "f" || e.key === "F" || e.code === "Space") {
+        // Prevent accidental button re-click if focus is on a button
+        if (document.activeElement && document.activeElement.tagName === "BUTTON") return;
+        e.preventDefault();
+        triggerFeedCat();
+      } else if (e.key === "e" || e.key === "E") {
+        e.preventDefault();
+        triggerPetCat();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
+        inputState.left = false;
+      } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
+        inputState.right = false;
+      }
+    });
+
+    // Helper for hold-to-walk on touch/mouse buttons
+    function bindHoldWalkButton(buttonEl, directionKey) {
+      const startHold = (e) => {
+        e.preventDefault();
+        if (gameState.mode === "playing") {
+          inputState[directionKey] = true;
+        }
+      };
+      const endHold = () => {
+        inputState[directionKey] = false;
+      };
+
+      buttonEl.addEventListener("mousedown", startHold);
+      buttonEl.addEventListener("touchstart", startHold, { passive: false });
+      window.addEventListener("mouseup", endHold);
+      window.addEventListener("touchend", endHold);
+      buttonEl.addEventListener("mouseleave", endHold);
+    }
+
+    bindHoldWalkButton(ui.walkLeftBtn, "left");
+    bindHoldWalkButton(ui.walkRightBtn, "right");
+
+    // Tap or click anywhere on the canvas to walk to that spot on the sidewalk
+    canvas.addEventListener("pointerdown", (e) => {
+      if (gameState.mode !== "playing") return;
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const worldX = Math.max(70, Math.min(SETTINGS.worldWidth - 70, gameState.cameraX + clickX));
+      gameState.targetWalkX = worldX;
+    });
+
+    // Action & Overlay Button Listeners
+    ui.startBtn.addEventListener("click", startNewGame);
+    ui.playAgainBtn.addEventListener("click", startNewGame);
+    ui.pauseBtn.addEventListener("click", togglePause);
+    ui.resumeBtn.addEventListener("click", resumeGame);
+    ui.pauseEndBtn.addEventListener("click", () =>
+      triggerGameOver("You wrapped up your neighborhood stroll early.")
+    );
+    ui.gameOverBtn.addEventListener("click", () =>
+      triggerGameOver("You ended your neighborhood cat walk.")
+    );
+    ui.feedBtn.addEventListener("click", triggerFeedCat);
+    ui.petBtn.addEventListener("click", triggerPetCat);
+
+    ui.soundToggleBtn.addEventListener("click", () => {
+      SoundFX.enabled = !SoundFX.enabled;
+      ui.soundToggleBtn.setAttribute("aria-pressed", String(SoundFX.enabled));
+      ui.soundToggleBtn.textContent = SoundFX.enabled ? "🔊 Sound On" : "🔇 Sound Off";
+      if (SoundFX.enabled) {
+        SoundFX.ensureContext();
+      }
+    });
+
+    /**
+     * ============================================================================
+     * MAIN ANIMATION FRAME LOOP
+     * ============================================================================
+     */
+    let lastFrameTime = performance.now();
+
+    function gameLoop(now) {
+      // Cap delta time to 0.05s so tab switches never cause physics jumps
+      const dt = Math.min(0.05, Math.max(0, (now - lastFrameTime) / 1000));
+      lastFrameTime = now;
+
+      updateSimulation(dt);
+      renderScene();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Initialize scenery, responsive canvas sizing, and start rendering
+    window.addEventListener("resize", resizeCanvas);
+    window.onload = function () {
+      resizeCanvas();
+      resetGameData();
+      lastFrameTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>
