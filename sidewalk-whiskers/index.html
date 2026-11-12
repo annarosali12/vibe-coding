@@ -350,6 +350,18 @@
       padding: 0.85rem 1.5rem;
     }
 
+    /* Phone-only quick-start button in the bottom controls bar (hidden on desktop & once started) */
+    .phone-start-btn {
+      display: none;
+    }
+
+    @media (max-width: 680px), (hover: none) and (pointer: coarse) and (max-width: 900px) {
+      .phone-start-btn.is-visible {
+        display: inline-flex;
+        width: 100%;
+      }
+    }
+
     .btn-secondary {
       background: rgba(255, 255, 255, 0.12);
       color: var(--text-primary);
@@ -405,6 +417,21 @@
       }
       .kbd-hint {
         display: none;
+      }
+      /* Keep the start dialog compact on phones so the bottom "Start Walking" button is immediately reachable */
+      .overlay-backdrop {
+        align-items: flex-start;
+        overflow-y: auto;
+        padding: 0.65rem;
+      }
+      .overlay-card {
+        padding: 1rem;
+        gap: 0.65rem;
+      }
+      .rules-list {
+        font-size: 0.84rem;
+        padding: 0.65rem 0.85rem;
+        gap: 0.35rem;
       }
     }
   </style>
@@ -535,6 +562,11 @@
          BOTTOM ACTION CONTROLS BAR
          ======================================================================== -->
     <footer class="controls-footer" aria-label="Game Controls">
+      <!-- Dedicated "Start Walking" button surfaced on phones before the walk starts -->
+      <button type="button" id="phoneStartBtn" class="btn btn-primary phone-start-btn is-visible" aria-label="Start Walking on Phone">
+        🐾 Start Walking
+      </button>
+
       <div class="move-controls" role="group" aria-label="Walk Controls">
         <button type="button" id="walkLeftBtn" class="btn btn-secondary" aria-label="Walk Left">
           ◀ Walk Left <span class="kbd-hint">← / A</span>
@@ -749,6 +781,7 @@
       resumeBtn: document.getElementById("resumeBtn"),
       pauseEndBtn: document.getElementById("pauseEndBtn"),
       playAgainBtn: document.getElementById("playAgainBtn"),
+      phoneStartBtn: document.getElementById("phoneStartBtn"),
       soundToggleBtn: document.getElementById("soundToggleBtn"),
 
       walkLeftBtn: document.getElementById("walkLeftBtn"),
@@ -1165,6 +1198,8 @@
       ui.startOverlay.hidden = true;
       ui.pauseOverlay.hidden = true;
       ui.gameOverOverlay.hidden = true;
+      ui.phoneStartBtn.classList.remove("is-visible");
+      ui.phoneStartBtn.hidden = true;
       announceToScreenReader("Walk started. Use left and right controls to move along the city sidewalk.");
     }
 
@@ -2116,6 +2151,7 @@
 
     // Action & Overlay Button Listeners
     ui.startBtn.addEventListener("click", startNewGame);
+    ui.phoneStartBtn.addEventListener("click", startNewGame);
     ui.playAgainBtn.addEventListener("click", startNewGame);
     ui.pauseBtn.addEventListener("click", togglePause);
     ui.resumeBtn.addEventListener("click", resumeGame);
