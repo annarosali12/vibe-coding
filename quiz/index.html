@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trivia Quiz</title>
+  <!--
+    ==========================================================================
+    // v1.3 - updated quiz title
+    PROJECT: Consolidated & Auto-Shuffled Trivia Quiz
+    DESCRIPTION: An accessible, keyboard-friendly, single-file multiple-choice
+                 trivia game where the title, subtitle, and all questions live
+                 in one easy-to-edit list at the top of the JavaScript.
+    LIBRARIES USED:
+      No external libraries are used — 100% zero-dependency vanilla HTML, CSS, and JavaScript.
+    PRIVACY: No data is collected or sent to any server. Everything runs 100%
+             locally inside your web browser.
+    ==========================================================================
+  -->
+  <style>
+    /* ========================================================================
+       1. CSS VARIABLES & RETRO 1980s SUPERHERO THEME
+       ======================================================================== */
+    :root {
+      /* Deep night-sky navy & slate surfaces */
+      --bg-gradient-top: #090d16;
+      --bg-gradient-bottom: #131c31;
+      --card-bg: #182238;
+      --card-border: #2c3e66;
+
+      /* Signature Greatest American Hero Suit Red & Gold/Yellow Accents */
+      --hero-red: #d9232e;
+      --hero-red-hover: #ef333f;
+      --hero-red-glow: rgba(217, 35, 46, 0.45);
+      --hero-gold: #f7c52b;
+      --hero-gold-soft: rgba(247, 197, 43, 0.16);
+
+      /* Answer Option States */
+      --option-bg: #202d4a;
+      --option-hover: #293a5e;
+      --option-border: #3a4f7a;
+
+      --correct-bg: #123c2a;
+      --correct-border: #28c76f;
+      --correct-text: #8ef5b8;
+
+      --wrong-bg: #451822;
+      --wrong-border: #ff4d5a;
+      --wrong-text: #ffb3b8;
+
+      /* Typography Colors */
+      --text-primary: #f4f7fc;
+      --text-secondary: #b4c2de;
+      --text-muted: #8496ba;
+
+      /* Focus Ring for Keyboard Accessibility */
+      --focus-ring: #f7c52b;
+
+      /* Sizing & Radii */
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    /* ========================================================================
+       2. BASE & RESET STYLES
+       ======================================================================== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at top center, #1d2b4d 0%, var(--bg-gradient-top) 60%, #05070c 100%);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    /* High-visibility keyboard focus indicator for all interactive elements */
+    :focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 3px;
+    }
+
+    /* Utility class to visually hide elements while keeping them available to screen readers */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ========================================================================
+       3. LAYOUT & CARD CONTAINER
+       ======================================================================== */
+    .quiz-shell {
+      width: 100%;
+      max-width: 680px;
+      margin: auto;
+    }
+
+    .quiz-header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .emblem-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--hero-gold-soft);
+      border: 1px solid rgba(247, 197, 43, 0.45);
+      color: var(--hero-gold);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      margin-bottom: 0.75rem;
+    }
+
+    .quiz-title {
+      margin: 0;
+      font-size: clamp(1.65rem, 4.5vw, 2.4rem);
+      font-weight: 800;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      text-shadow: 0 3px 18px rgba(0, 0, 0, 0.55);
+    }
+
+    .quiz-subtitle {
+      margin: 0.45rem 0 0;
+      color: var(--text-secondary);
+      font-size: 0.98rem;
+    }
+
+    .quiz-card {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-top: 5px solid var(--hero-red);
+      border-radius: var(--radius-lg);
+      padding: clamp(1.25rem, 4vw, 2.25rem);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 35px rgba(217, 35, 46, 0.12);
+    }
+
+    /* ========================================================================
+       4. PROGRESS BAR & STATUS HEADER
+       ======================================================================== */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .score-pill {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      color: var(--hero-gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: #0f1626;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 1.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 20%;
+      background: linear-gradient(90deg, var(--hero-red), var(--hero-gold));
+      border-radius: 999px;
+      transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* ========================================================================
+       5. QUESTION FIELDSET & ANSWER BUTTONS
+       ======================================================================== */
+    .question-fieldset {
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .question-legend {
+      font-size: clamp(1.18rem, 3vw, 1.45rem);
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1.35rem;
+      line-height: 1.35;
+      width: 100%;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .option-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.95rem;
+      width: 100%;
+      text-align: left;
+      background: var(--option-bg);
+      color: var(--text-primary);
+      border: 2px solid var(--option-border);
+      border-radius: var(--radius-md);
+      padding: 0.95rem 1.1rem;
+      font-size: 1.05rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.12s ease, background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+      min-height: 56px; /* Generous touch target */
+    }
+
+    .option-btn:hover:not(:disabled) {
+      background: var(--option-hover);
+      border-color: var(--hero-gold);
+      transform: translateY(-1px);
+    }
+
+    .option-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    /* Letter badge (A, B, C, D) */
+    .option-key {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 2rem;
+      height: 2rem;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--hero-gold);
+      text-transform: uppercase;
+    }
+
+    .option-text {
+      flex: 1;
+    }
+
+    .option-status-icon {
+      font-weight: 800;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+    }
+
+    /* State: Correct Answer */
+    .option-btn.is-correct {
+      background: var(--correct-bg);
+      border-color: var(--correct-border);
+      color: var(--correct-text);
+      box-shadow: 0 0 0 1px var(--correct-border);
+    }
+
+    .option-btn.is-correct .option-key {
+      background: var(--correct-border);
+      border-color: var(--correct-border);
+      color: #072216;
+    }
+
+    /* State: Incorrect Selected Answer */
+    .option-btn.is-wrong {
+      background: var(--wrong-bg);
+      border-color: var(--wrong-border);
+      color: var(--wrong-text);
+    }
+
+    .option-btn.is-wrong .option-key {
+      background: var(--wrong-border);
+      border-color: var(--wrong-border);
+      color: #2b070c;
+    }
+
+    /* Dim unselected neutral options after answering so the right answer pops */
+    .option-btn.is-dimmed {
+      opacity: 0.55;
+    }
+
+    /* ========================================================================
+       6. FEEDBACK BANNER & ACTION CONTROLS
+       ======================================================================== */
+    .feedback-box {
+      margin-top: 1.35rem;
+      padding: 1rem 1.15rem;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 1rem;
+      display: none;
+      align-items: flex-start;
+      gap: 0.7rem;
+      line-height: 1.45;
+    }
+
+    .feedback-box.visible {
+      display: flex;
+      animation: fadeSlideIn 0.22s ease-out;
+    }
+
+    .feedback-box.correct {
+      background: rgba(40, 199, 111, 0.14);
+      border: 1.5px solid var(--correct-border);
+      color: var(--correct-text);
+    }
+
+    .feedback-box.incorrect {
+      background: rgba(255, 77, 90, 0.14);
+      border: 1.5px solid var(--wrong-border);
+      color: var(--wrong-text);
+    }
+
+    .controls-row {
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .primary-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--hero-red);
+      color: #ffffff;
+      border: 2px solid transparent;
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.6rem;
+      font-size: 1.05rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 6px 20px var(--hero-red-glow);
+      transition: background-color 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease;
+      min-height: 50px;
+    }
+
+    .primary-btn:hover {
+      background: var(--hero-red-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(239, 51, 63, 0.55);
+    }
+
+    .primary-btn:active {
+      transform: translateY(0);
+    }
+
+    .primary-btn[hidden] {
+      display: none;
+    }
+
+    /* ========================================================================
+       7. FINAL RESULTS SCREEN
+       ======================================================================== */
+    .results-screen {
+      text-align: center;
+      padding: 0.5rem 0;
+      animation: fadeSlideIn 0.3s ease-out;
+    }
+
+    .results-screen[hidden] {
+      display: none;
+    }
+
+    .results-crest {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto 1rem;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, var(--hero-red-hover), var(--hero-red));
+      border: 3px solid var(--hero-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 28px var(--hero-red-glow);
+    }
+
+    .results-heading {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .final-score-display {
+      display: inline-block;
+      margin: 0.75rem 0 1rem;
+      padding: 0.65rem 1.5rem;
+      background: #0f1626;
+      border: 2px solid var(--hero-gold);
+      border-radius: 999px;
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--hero-gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .results-message {
+      margin: 0 auto 1.75rem;
+      max-width: 48ch;
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+    }
+
+    /* ========================================================================
+       8. KEYBOARD SHORTCUTS FOOTER HINT
+       ======================================================================== */
+    .keyboard-help {
+      margin-top: 1.15rem;
+      text-align: center;
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 0.12rem 0.42rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .option-btn {
+        padding: 0.85rem 0.9rem;
+        font-size: 0.98rem;
+      }
+
+      .primary-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="quiz-shell">
+    <!-- ======================================================================
+         HEADER: Title & Show Theme
+         ====================================================================== -->
+    <header class="quiz-header">
+      <div class="emblem-badge" aria-hidden="true">
+        <!-- Custom inline SVG emblem -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+        <span>Classic TV Trivia</span>
+      </div>
+      <h1 class="quiz-title" id="quiz-title">Loading Quiz...</h1>
+      <p class="quiz-subtitle" id="quiz-subtitle"></p>
+    </header>
+
+    <!-- ======================================================================
+         MAIN QUIZ CARD
+         ====================================================================== -->
+    <main class="quiz-card" id="quiz-app">
+      <!-- Active Question View -->
+      <section id="question-screen" aria-labelledby="question-legend">
+        <div class="status-bar">
+          <span id="progress-text">Question 1 of 5</span>
+          <span class="score-pill" id="live-score">Score: 0</span>
+        </div>
+
+        <div class="progress-track" role="progressbar" aria-label="Quiz progress" aria-valuemin="1" aria-valuemax="5" aria-valuenow="1" id="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <fieldset class="question-fieldset">
+          <legend class="question-legend" id="question-legend" tabindex="-1">
+            Loading question...
+          </legend>
+
+          <div class="options-list" id="options-container" role="group" aria-label="Answer choices">
+            <!-- Answer buttons are dynamically injected here by JavaScript -->
+          </div>
+        </fieldset>
+
+        <!-- Immediate feedback banner (announced automatically to screen readers via aria-live) -->
+        <div id="feedback-banner" class="feedback-box" role="status" aria-live="polite"></div>
+
+        <div class="controls-row">
+          <button type="button" id="next-btn" class="primary-btn" hidden>
+            Next Question
+          </button>
+        </div>
+      </section>
+
+      <!-- Final Results View -->
+      <section id="results-screen" class="results-screen" aria-labelledby="results-heading" hidden>
+        <div class="results-crest" aria-hidden="true">
+          <svg width="38" height="38" viewBox="0 0 24 24" fill="#f7c52b" stroke="#f7c52b" stroke-width="1.5">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </div>
+        <h2 class="results-heading" id="results-heading" tabindex="-1">Quiz Complete!</h2>
+        <div class="final-score-display" id="final-score-text">You scored 0 out of 5</div>
+        <p class="results-message" id="final-message"></p>
+        <button type="button" id="restart-btn" class="primary-btn">
+          Play Again
+        </button>
+      </section>
+    </main>
+
+    <!-- Keyboard Controls Guide -->
+    <footer class="keyboard-help">
+      Keyboard controls: Press <kbd>A</kbd>–<kbd>D</kbd> or <kbd>1</kbd>–<kbd>4</kbd> to answer,
+      <kbd>↑</kbd>/<kbd>↓</kbd> to move focus, and <kbd>Enter</kbd> or <kbd>→</kbd> to continue.
+    </footer>
+  </div>
+
+  <script>
+    /**
+     * ========================================================================
+     * // v1.3 - updated quiz title
+     *
+     * HOW TO EDIT THIS QUIZ (NO CODING EXPERIENCE NEEDED!):
+     * ------------------------------------------------------------------------
+     * Everything you might want to change—the quiz title, the subtitle, and
+     * all of the questions and answers—lives right inside "QUIZ_CONTENT" below.
+     * You do NOT need to touch any other part of this file!
+     *
+     * 1. CHANGING THE TITLE OR SUBTITLE:
+     *    - Find `title:` or `subtitle:` below and replace the words inside the
+     *      quotation marks `"..."`. Keep the quotation marks and the comma at
+     *      the end of the line.
+     *
+     * 2. EDITING OR ADDING A QUESTION:
+     *    - Copy one of the `{ question: ..., answers: [ ... ] },` blocks and
+     *      paste it right after another question block.
+     *    - Put your question inside the quotes after `question:`.
+     *    - Put your answer choices inside the square brackets `[ ... ]` after
+     *      `answers:`.
+     *
+     * 3. VERY IMPORTANT RULE FOR ANSWERS:
+     *    - ALWAYS put the RIGHT answer FIRST in the list!
+     *    - Put the wrong answers after it. The quiz will automatically mix up
+     *      (shuffle) the order of the choices every time someone plays!
+     *
+     * 4. PUNCTUATION CHECKLIST:
+     *    - Wrap every question and every answer in double quotes: `"like this"`
+     *    - Put a comma `,` between each answer choice (no comma needed after
+     *      the very last answer inside `[ ... ]`).
+     *    - Put a comma `,` after the closing curly brace `}` of every question
+     *      block.
+     * ========================================================================
+     */
+    const QUIZ_CONTENT = {
+      title: "You wouldn't believe me if I told you! Test your knowledge of the show Greatest American Hero",
+      subtitle: "Test your knowledge of this classic show!",
+      questions: [
+        {
+          question: "The T.V. show The Greatest American Hero first aired in what year?",
+          answers: [
+            "1981", // <-- RIGHT ANSWER FIRST
+            "1978",
+            "1984",
+            "1989"
+          ]
+        },
+        {
+          question: "The main character in the show has what item to help him?",
+          answers: [
+            "A red suit and a cape", // <-- RIGHT ANSWER FIRST
+            "A pair of running shoes",
+            "Dress socks",
+            "A briefcase"
+          ]
+        },
+        {
+          question: "What job does the main character have?",
+          answers: [
+            "A special ed teacher", // <-- RIGHT ANSWER FIRST
+            "An electrician",
+            "An engineer",
+            "A construction worker"
+          ]
+        },
+        {
+          question: "Who is the main character’s partner?",
+          answers: [
+            "An FBI agent", // <-- RIGHT ANSWER FIRST
+            "A sous chef",
+            "A lawyer",
+            "A dog trainer"
+          ]
+        },
+        {
+          question: "Who does the main character encounter, and where?",
+          answers: [
+            "Aliens in the desert", // <-- RIGHT ANSWER FIRST
+            "Vampires in the hotel",
+            "Werewolves in the forest",
+            "Sea monsters in the ocean"
+          ]
+        }
+      ]
+    };
+
+    /**
+     * ========================================================================
+     * GAME STATE VARIABLES
+     * ========================================================================
+     * Keeps track of the shuffled questions for the current playthrough, which
+     * question the player is currently viewing, their running score, and
+     * whether they have already answered the current question.
+     */
+    let activeQuestions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let hasAnsweredCurrent = false;
+
+    // Letters displayed beside answer choices (supports up to 6 choices cleanly)
+    const OPTION_LETTERS = ["a", "b", "c", "d", "e", "f"];
+
+    /**
+     * ========================================================================
+     * DOM ELEMENT REFERENCES
+     * ========================================================================
+     * Finds and stores the HTML elements on the page so the game can update
+     * titles, questions, buttons, feedback messages, and scores quickly.
+     */
+    const quizTitleElement = document.getElementById("quiz-title");
+    const quizSubtitleElement = document.getElementById("quiz-subtitle");
+    const questionScreen = document.getElementById("question-screen");
+    const resultsScreen = document.getElementById("results-screen");
+    const progressText = document.getElementById("progress-text");
+    const liveScoreText = document.getElementById("live-score");
+    const progressBar = document.getElementById("progress-bar");
+    const progressFill = document.getElementById("progress-fill");
+    const questionLegend = document.getElementById("question-legend");
+    const optionsContainer = document.getElementById("options-container");
+    const feedbackBanner = document.getElementById("feedback-banner");
+    const nextButton = document.getElementById("next-btn");
+    const resultsHeading = document.getElementById("results-heading");
+    const finalScoreText = document.getElementById("final-score-text");
+    const finalMessageText = document.getElementById("final-message");
+    const restartButton = document.getElementById("restart-btn");
+
+    /**
+     * ========================================================================
+     * APPLY QUIZ TITLE & SUBTITLE FROM QUIZ_CONTENT
+     * ========================================================================
+     * Reads the title and subtitle from the editable QUIZ_CONTENT object at
+     * the top of the script and displays them in the browser tab and header.
+     */
+    function applyQuizMetadata() {
+      document.title = QUIZ_CONTENT.title;
+      quizTitleElement.textContent = QUIZ_CONTENT.title;
+      quizSubtitleElement.textContent = QUIZ_CONTENT.subtitle;
+    }
+
+    /**
+     * ========================================================================
+     * SHUFFLE ANSWER CHOICES FOR EACH QUESTION (FISHER-YATES SHUFFLE)
+     * ========================================================================
+     * Takes the questions from QUIZ_CONTENT where the first answer (index 0)
+     * is always the correct answer, randomly scrambles the order of the
+     * choices for each question, and remembers which new spot holds the right
+     * answer.
+     */
+    function buildShuffledQuestions() {
+      return QUIZ_CONTENT.questions.map((item) => {
+        // Tag each answer with whether it was the first item (the right answer)
+        const taggedChoices = item.answers.map((answerText, index) => ({
+          text: answerText,
+          isCorrect: index === 0
+        }));
+
+        // Randomly mix up the tagged choices using the Fisher-Yates algorithm
+        for (let i = taggedChoices.length - 1; i > 0; i--) {
+          const randomIndex = Math.floor(Math.random() * (i + 1));
+          const temp = taggedChoices[i];
+          taggedChoices[i] = taggedChoices[randomIndex];
+          taggedChoices[randomIndex] = temp;
+        }
+
+        // Return the question with its mixed-up choices and the new right index
+        return {
+          question: item.question,
+          choices: taggedChoices.map((choice) => choice.text),
+          correctIndex: taggedChoices.findIndex((choice) => choice.isCorrect)
+        };
+      });
+    }
+
+    /**
+     * ========================================================================
+     * RENDER CURRENT QUESTION
+     * ========================================================================
+     * Displays the active question on screen, updates the progress bar and
+     * score pill, creates clickable/keyboard-accessible answer buttons, and
+     * resets any feedback from the previous question.
+     */
+    function renderQuestion(shouldFocusFirstOption = false) {
+      const totalQuestions = activeQuestions.length;
+      const currentItem = activeQuestions[currentQuestionIndex];
+      const questionNumber = currentQuestionIndex + 1;
+
+      // Reset question state
+      hasAnsweredCurrent = false;
+      feedbackBanner.className = "feedback-box";
+      feedbackBanner.textContent = "";
+      nextButton.hidden = true;
+
+      // Update progress header and visual progress bar
+      progressText.textContent = `Question ${questionNumber} of ${totalQuestions}`;
+      liveScoreText.textContent = `Score: ${score}`;
+      progressBar.setAttribute("aria-valuemax", String(totalQuestions));
+      progressBar.setAttribute("aria-valuenow", String(questionNumber));
+      progressFill.style.width = `${(questionNumber / totalQuestions) * 100}%`;
+
+      // Update the question text inside the <legend>
+      questionLegend.textContent = `${questionNumber}. ${currentItem.question}`;
+
+      // Clear old answer buttons and build fresh ones for this question
+      optionsContainer.innerHTML = "";
+
+      currentItem.choices.forEach((choiceText, index) => {
+        const letter = OPTION_LETTERS[index] || String(index + 1);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "option-btn";
+        button.dataset.index = String(index);
+        button.setAttribute("aria-label", `Option ${letter.toUpperCase()}: ${choiceText}`);
+
+        // Build inner letter badge, answer text, and checkmark/X icon placeholder
+        const keyBadge = document.createElement("span");
+        keyBadge.className = "option-key";
+        keyBadge.setAttribute("aria-hidden", "true");
+        keyBadge.textContent = `${letter})`;
+
+        const textSpan = document.createElement("span");
+        textSpan.className = "option-text";
+        textSpan.textContent = choiceText;
+
+        const statusSpan = document.createElement("span");
+        statusSpan.className = "option-status-icon";
+        statusSpan.setAttribute("aria-hidden", "true");
+
+        button.appendChild(keyBadge);
+        button.appendChild(textSpan);
+        button.appendChild(statusSpan);
+
+        // Handle click or Enter/Space activation
+        button.addEventListener("click", () => handleAnswerSelection(index));
+
+        optionsContainer.appendChild(button);
+      });
+
+      // Move keyboard focus smoothly to the first choice when moving to a new question
+      if (shouldFocusFirstOption) {
+        const firstOption = optionsContainer.querySelector(".option-btn");
+        if (firstOption) {
+          firstOption.focus();
+        }
+      }
+    }
+
+    /**
+     * ========================================================================
+     * HANDLE ANSWER SELECTION & IMMEDIATE FEEDBACK
+     * ========================================================================
+     * Runs the instant a player picks an answer. It checks whether the choice
+     * matches the shuffled right answer, highlights the right answer in green
+     * (and any wrong choice in red), announces the result immediately, updates
+     * the score, and shows the Next button.
+     */
+    function handleAnswerSelection(selectedIndex) {
+      // Ignore extra clicks or keypresses once an answer is locked in
+      if (hasAnsweredCurrent) {
+        return;
+      }
+      hasAnsweredCurrent = true;
+
+      const currentItem = activeQuestions[currentQuestionIndex];
+      const correctIndex = currentItem.correctIndex;
+      const isCorrect = selectedIndex === correctIndex;
+      const optionButtons = Array.from(optionsContainer.querySelectorAll(".option-btn"));
+
+      // Increase score if the player picked the right answer
+      if (isCorrect) {
+        score += 1;
+        liveScoreText.textContent = `Score: ${score}`;
+      }
+
+      // Visually highlight the correct and incorrect buttons and disable further clicks
+      optionButtons.forEach((btn, idx) => {
+        btn.disabled = true;
+        const iconSpan = btn.querySelector(".option-status-icon");
+        const letter = OPTION_LETTERS[idx] || String(idx + 1);
+
+        if (idx === correctIndex) {
+          // Always highlight the correct answer in green
+          btn.classList.add("is-correct");
+          iconSpan.textContent = "✓";
+          btn.setAttribute(
+            "aria-label",
+            `Option ${letter.toUpperCase()}: ${currentItem.choices[idx]} — Correct answer`
+          );
+        } else if (idx === selectedIndex && !isCorrect) {
+          // Highlight the player's wrong pick in red
+          btn.classList.add("is-wrong");
+          iconSpan.textContent = "✗";
+          btn.setAttribute(
+            "aria-label",
+            `Option ${letter.toUpperCase()}: ${currentItem.choices[idx]} — Your incorrect choice`
+          );
+        } else {
+          // Gently dim the remaining non-selected options
+          btn.classList.add("is-dimmed");
+        }
+      });
+
+      // Show immediate text feedback (automatically read aloud by screen readers)
+      const correctLetter = OPTION_LETTERS[correctIndex] || String(correctIndex + 1);
+      const correctText = currentItem.choices[correctIndex];
+
+      if (isCorrect) {
+        feedbackBanner.className = "feedback-box correct visible";
+        feedbackBanner.textContent = `Correct! "${correctLetter}) ${correctText}" is the right answer.`;
+      } else {
+        feedbackBanner.className = "feedback-box incorrect visible";
+        feedbackBanner.textContent = `Not quite! The correct answer was ${correctLetter}) ${correctText}.`;
+      }
+
+      // Update the button label for the last question vs. earlier questions
+      const isLastQuestion = currentQuestionIndex === activeQuestions.length - 1;
+      nextButton.textContent = isLastQuestion ? "See Final Score" : "Next Question";
+      nextButton.hidden = false;
+
+      // Focus the Next button so pressing Enter/Space immediately continues
+      nextButton.focus();
+    }
+
+    /**
+     * ========================================================================
+     * ADVANCE TO NEXT QUESTION OR SHOW FINAL RESULTS
+     * ========================================================================
+     * Moves forward to the next question if there are more left, or opens the
+     * final score screen once all questions have been answered.
+     */
+    function goToNextStep() {
+      if (!hasAnsweredCurrent) {
+        return;
+      }
+
+      if (currentQuestionIndex < activeQuestions.length - 1) {
+        currentQuestionIndex += 1;
+        renderQuestion(true);
+      } else {
+        showFinalResults();
+      }
+    }
+
+    /**
+     * ========================================================================
+     * DISPLAY FINAL RESULTS SCREEN
+     * ========================================================================
+     * Hides the question card, shows the player's final score out of the total
+     * number of questions, displays an encouraging summary message, and moves
+     * focus to the Play Again button.
+     */
+    function showFinalResults() {
+      const totalQuestions = activeQuestions.length;
+      questionScreen.hidden = true;
+      resultsScreen.hidden = false;
+
+      finalScoreText.textContent = `You scored ${score} out of ${totalQuestions}`;
+
+      // Choose a general encouraging message based on score percentage
+      const ratio = totalQuestions > 0 ? score / totalQuestions : 0;
+      let summaryMessage = "";
+      if (ratio === 1) {
+        summaryMessage =
+          "Perfect score! You got every single question right. Believe it or not, you're a true trivia champion!";
+      } else if (ratio >= 0.6) {
+        summaryMessage =
+          "Great job! You know your stuff. Want to try again and aim for a perfect score?";
+      } else {
+        summaryMessage =
+          "Good effort! Now that you've seen the answers, hit Play Again to test your memory and beat your score.";
+      }
+
+      finalMessageText.textContent = summaryMessage;
+
+      // Focus the Play Again button so a keyboard user can restart right away
+      restartButton.focus();
+    }
+
+    /**
+     * ========================================================================
+     * START OR RESTART THE QUIZ
+     * ========================================================================
+     * Resets the score and question counter, reshuffles all answer choices so
+     * they appear in a fresh random order, and renders Question 1.
+     */
+    function startQuiz(shouldFocusFirstOption = false) {
+      activeQuestions = buildShuffledQuestions();
+      currentQuestionIndex = 0;
+      score = 0;
+      hasAnsweredCurrent = false;
+
+      resultsScreen.hidden = true;
+      questionScreen.hidden = false;
+
+      renderQuestion(shouldFocusFirstOption);
+    }
+
+    /**
+     * ========================================================================
+     * FULL KEYBOARD-ONLY NAVIGATION SUPPORT
+     * ========================================================================
+     * Lets players complete the entire quiz using only a keyboard:
+     *   - Keys 'A'–'D' or '1'–'4': Immediately pick that answer choice.
+     *   - ArrowUp / ArrowDown: Move focus up and down through answer choices.
+     *   - ArrowRight: Continue to the next question or results after answering.
+     *   - Enter / Space: Works natively on any focused button.
+     *   - Key 'R': Restarts the quiz when on the final results screen.
+     */
+    document.addEventListener("keydown", (event) => {
+      // Ignore shortcuts if Ctrl, Alt, or Meta keys are held down
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+
+      // Allow pressing 'R' on the results screen to play again quickly
+      if (!resultsScreen.hidden) {
+        if (key === "r") {
+          event.preventDefault();
+          startQuiz(true);
+        }
+        return;
+      }
+
+      const optionButtons = Array.from(optionsContainer.querySelectorAll(".option-btn"));
+
+      // 1. Direct letter (a-d) or number (1-4) answer selection before answering
+      if (!hasAnsweredCurrent) {
+        const letterMap = { a: 0, b: 1, c: 2, d: 3, "1": 0, "2": 1, "3": 2, "4": 3 };
+        if (Object.prototype.hasOwnProperty.call(letterMap, key)) {
+          const targetIndex = letterMap[key];
+          if (optionButtons[targetIndex]) {
+            event.preventDefault();
+            handleAnswerSelection(targetIndex);
+            return;
+          }
+        }
+      }
+
+      // 2. Up/Down arrow keys to cycle focus cleanly through answer choices
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const activeIndex = optionButtons.indexOf(document.activeElement);
+        if (optionButtons.length > 0) {
+          event.preventDefault();
+          let nextIndex = 0;
+          if (activeIndex === -1) {
+            nextIndex = event.key === "ArrowDown" ? 0 : optionButtons.length - 1;
+          } else if (event.key === "ArrowDown") {
+            nextIndex = (activeIndex + 1) % optionButtons.length;
+          } else {
+            nextIndex = (activeIndex - 1 + optionButtons.length) % optionButtons.length;
+          }
+          optionButtons[nextIndex].focus();
+        }
+      }
+
+      // 3. Right Arrow advances to the next question once an answer is chosen
+      if (event.key === "ArrowRight" && hasAnsweredCurrent && !nextButton.hidden) {
+        event.preventDefault();
+        goToNextStep();
+      }
+    });
+
+    // Connect click handlers to the Next Question and Play Again buttons
+    nextButton.addEventListener("click", goToNextStep);
+    restartButton.addEventListener("click", () => startQuiz(true));
+
+    // Load the title/subtitle and start the first round of the quiz
+    applyQuizMetadata();
+    startQuiz(false);
+  </script>
+</body>
+</html>
