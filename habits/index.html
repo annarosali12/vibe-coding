@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Habit Tracker</title>
+  <style>
+    /* ==========================================================================
+       CSS Custom Properties (Design Tokens & Adaptive Light/Dark Theme)
+       ========================================================================== */
+    :root {
+      --bg-page: #f4f6f8;
+      --bg-surface: #ffffff;
+      --bg-subtle: #eef2f6;
+      --bg-hover: #e2e8f0;
+      --text-primary: #111827;
+      --text-secondary: #4b5563;
+      --text-muted: #6b7280;
+      --border-color: #d1d5db;
+      --border-strong: #9ca3af;
+
+      --accent-primary: #0f766e;
+      --accent-primary-hover: #115e59;
+      --accent-primary-text: #ffffff;
+      --accent-soft: #ccfbf1;
+      --accent-soft-text: #115e59;
+
+      --success-bg: #15803d;
+      --success-border: #166534;
+      --success-text: #ffffff;
+
+      --warning-bg: #fef3c7;
+      --warning-border: #f59e0b;
+      --warning-text: #92400e;
+
+      --danger-bg: #b91c1c;
+      --danger-hover: #991b1b;
+      --danger-soft: #fee2e2;
+      --danger-border: #f87171;
+      --danger-text: #991b1b;
+
+      --focus-ring: #2563eb;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.18);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-page: #0f172a;
+        --bg-surface: #1e293b;
+        --bg-subtle: #334155;
+        --bg-hover: #475569;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --border-strong: #64748b;
+
+        --accent-primary: #14b8a6;
+        --accent-primary-hover: #0d9488;
+        --accent-primary-text: #042f2e;
+        --accent-soft: #134e4a;
+        --accent-soft-text: #99f6e4;
+
+        --success-bg: #16a34a;
+        --success-border: #22c55e;
+        --success-text: #ffffff;
+
+        --warning-bg: #451a03;
+        --warning-border: #d97706;
+        --warning-text: #fde68a;
+
+        --danger-bg: #dc2626;
+        --danger-hover: #ef4444;
+        --danger-soft: #450a0a;
+        --danger-border: #ef4444;
+        --danger-text: #fecaca;
+
+        --focus-ring: #60a5fa;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
+      }
+    }
+
+    /* ==========================================================================
+       Base Reset & Accessibility Utilities
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* High-visibility keyboard focus indicator */
+    :focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
+
+    /* Screen-reader only utility class */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ==========================================================================
+       Layout Containers
+       ========================================================================== */
+    .app-container {
+      max-width: 1020px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+
+    @media (min-width: 640px) {
+      .app-container {
+        padding: 2rem 1.5rem 4rem;
+      }
+    }
+
+    /* ==========================================================================
+       Header & Status Banners
+       ========================================================================== */
+    .app-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .app-header {
+        flex-direction: row;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+    }
+
+    .app-title {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .app-subtitle {
+      margin: 0.25rem 0 0;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .today-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background-color: var(--accent-soft);
+      color: var(--accent-soft-text);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      font-size: 0.875rem;
+      align-self: flex-start;
+    }
+
+    @media (min-width: 640px) {
+      .today-badge {
+        align-self: auto;
+      }
+    }
+
+    .banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.9rem 1rem;
+      border-radius: var(--radius-md);
+      margin-bottom: 1.25rem;
+      font-size: 0.925rem;
+      border: 1px solid transparent;
+    }
+
+    .banner[hidden] {
+      display: none;
+    }
+
+    .banner-warning {
+      background-color: var(--warning-bg);
+      border-color: var(--warning-border);
+      color: var(--warning-text);
+    }
+
+    .banner-feedback {
+      background-color: var(--accent-soft);
+      border-color: var(--accent-primary);
+      color: var(--accent-soft-text);
+    }
+
+    .banner-error {
+      background-color: var(--danger-soft);
+      border-color: var(--danger-border);
+      color: var(--danger-text);
+    }
+
+    .banner-icon {
+      flex-shrink: 0;
+      font-size: 1.15rem;
+      line-height: 1.3;
+    }
+
+    .banner-content {
+      flex: 1;
+    }
+
+    .banner-dismiss {
+      background: transparent;
+      border: 1px solid currentColor;
+      color: inherit;
+      border-radius: var(--radius-sm);
+      padding: 0.2rem 0.55rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       Cards & Add Habit Form
+       ========================================================================== */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .add-habit-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 540px) {
+      .add-habit-form {
+        flex-direction: row;
+        align-items: flex-end;
+      }
+    }
+
+    .input-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .input-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .text-input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
+      background-color: var(--bg-page);
+      border: 1.5px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      min-height: 44px;
+    }
+
+    .text-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Buttons
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-height: 44px;
+      padding: 0.6rem 1.1rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.05s ease, border-color 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background-color: var(--accent-primary);
+      color: var(--accent-primary-text);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-primary-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-subtle);
+      color: var(--text-primary);
+      border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-hover);
+    }
+
+    .btn-danger {
+      background-color: var(--danger-bg);
+      color: #ffffff;
+    }
+
+    .btn-danger:hover {
+      background-color: var(--danger-hover);
+    }
+
+    .btn-danger-outline {
+      background-color: transparent;
+      color: var(--danger-text);
+      border-color: var(--danger-border);
+    }
+
+    .btn-danger-outline:hover {
+      background-color: var(--danger-soft);
+    }
+
+    /* ==========================================================================
+       7-Day Habit Tracker Grid Table
+       ========================================================================== */
+    .grid-header-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .scroll-hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    @media (min-width: 780px) {
+      .scroll-hint {
+        display: none;
+      }
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface);
+    }
+
+    .habit-table {
+      width: 100%;
+      min-width: 700px;
+      border-collapse: collapse;
+      text-align: center;
+    }
+
+    .habit-table th,
+    .habit-table td {
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    .habit-table tbody tr:last-child th,
+    .habit-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .habit-table thead th {
+      background-color: var(--bg-subtle);
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .habit-table thead th.today-col {
+      background-color: var(--accent-soft);
+      color: var(--accent-soft-text);
+    }
+
+    .day-header-name {
+      display: block;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.75rem;
+    }
+
+    .day-header-date {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-top: 0.1rem;
+    }
+
+    .today-col .day-header-date {
+      color: var(--accent-soft-text);
+    }
+
+    /* Sticky first column on small screens so habit names stay visible while scrolling dates */
+    .habit-name-col {
+      text-align: left !important;
+      padding-left: 1rem !important;
+      min-width: 185px;
+      position: sticky;
+      left: 0;
+      background-color: var(--bg-surface);
+      z-index: 2;
+      border-right: 1px solid var(--border-color);
+    }
+
+    thead .habit-name-col {
+      background-color: var(--bg-subtle);
+      z-index: 3;
+    }
+
+    .habit-name-text {
+      font-weight: 600;
+      font-size: 0.98rem;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .streak-col {
+      min-width: 95px;
+      font-weight: 700;
+    }
+
+    .streak-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      background-color: var(--bg-subtle);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .streak-pill.active-streak {
+      background-color: var(--accent-soft);
+      color: var(--accent-soft-text);
+    }
+
+    /* Accessible Day Toggle Button */
+    .day-toggle-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border-strong);
+      background-color: var(--bg-page);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+      padding: 0;
+    }
+
+    .day-toggle-btn:hover {
+      border-color: var(--accent-primary);
+      background-color: var(--bg-subtle);
+    }
+
+    .day-toggle-btn:active {
+      transform: scale(0.94);
+    }
+
+    .day-toggle-btn[aria-pressed="true"] {
+      background-color: var(--success-bg);
+      border-color: var(--success-border);
+      color: var(--success-text);
+    }
+
+    .day-toggle-btn[aria-pressed="true"]:hover {
+      filter: brightness(1.06);
+    }
+
+    .check-icon {
+      width: 22px;
+      height: 22px;
+      display: block;
+    }
+
+    .unchecked-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--border-strong);
+      display: block;
+    }
+
+    /* Remove Habit Button */
+    .remove-habit-btn {
+      min-width: 40px;
+      min-height: 40px;
+      padding: 0.4rem 0.65rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background-color: transparent;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .remove-habit-btn:hover {
+      background-color: var(--danger-soft);
+      color: var(--danger-text);
+      border-color: var(--danger-border);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-secondary);
+    }
+
+    .empty-state p {
+      margin: 0 0 1rem;
+      font-size: 1rem;
+    }
+
+    /* ==========================================================================
+       Data Management Section
+       ========================================================================== */
+    .data-actions-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.85rem;
+    }
+
+    .data-note {
+      margin: 0.5rem 0 0;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    /* ==========================================================================
+       Accessible Native Dialog / Modal Styling
+       ========================================================================== */
+    dialog.app-dialog {
+      width: min(92vw, 500px);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      background-color: var(--bg-surface);
+      color: var(--text-primary);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    dialog.app-dialog::backdrop {
+      background-color: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(2px);
+    }
+
+    .dialog-title {
+      margin: 0 0 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .dialog-body {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 1.25rem;
+    }
+
+    .preview-summary {
+      background-color: var(--bg-page);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.9rem 1rem;
+      margin: 0.75rem 0;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+    }
+
+    .preview-summary ul {
+      margin: 0.4rem 0 0;
+      padding-left: 1.25rem;
+    }
+
+    .preview-summary li {
+      margin-bottom: 0.2rem;
+    }
+
+    .dialog-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.65rem;
+    }
+
+    .step-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-full);
+      background-color: var(--danger-soft);
+      color: var(--danger-text);
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Application Header -->
+    <header class="app-header">
+      <div>
+        <h1 class="app-title">Daily Habit Tracker</h1>
+        <p class="app-subtitle">Track your last 7 days, build streaks, and keep your data private in your browser.</p>
+      </div>
+      <div class="today-badge" id="todayDisplay" aria-label="Current date">
+        <span aria-hidden="true">📅</span>
+        <span id="todayText">Loading date...</span>
+      </div>
+    </header>
+
+    <!-- LocalStorage Blocked Warning Banner (Hidden unless localStorage fails) -->
+    <div id="storageWarningBanner" class="banner banner-warning" role="alert" hidden>
+      <span class="banner-icon" aria-hidden="true">⚠️</span>
+      <div class="banner-content">
+        <strong>Browser storage is unavailable:</strong> Your browser is blocking <code>localStorage</code> (for example, due to private browsing or strict privacy settings). The tracker will continue working during this session, but changes will not persist after you close or reload this tab. Use <strong>Export my data</strong> to save a backup file.
+      </div>
+    </div>
+
+    <!-- General Status / Feedback Banner -->
+    <div id="feedbackBanner" class="banner banner-feedback" role="status" aria-live="polite" hidden>
+      <span class="banner-icon" id="feedbackIcon" aria-hidden="true">ℹ️</span>
+      <div class="banner-content" id="feedbackMessage"></div>
+      <button type="button" class="banner-dismiss" id="dismissFeedbackBtn" aria-label="Dismiss notification">Dismiss</button>
+    </div>
+
+    <!-- Screen-reader live region for immediate toggle announcements -->
+    <div id="srAnnouncer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <main>
+      <!-- Add New Habit Card -->
+      <section class="card" aria-labelledby="add-habit-heading">
+        <h2 id="add-habit-heading" class="sr-only">Add a New Habit</h2>
+        <form id="addHabitForm" class="add-habit-form" novalidate>
+          <div class="input-group">
+            <label for="newHabitInput" class="input-label">Add a new habit</label>
+            <input
+              type="text"
+              id="newHabitInput"
+              class="text-input"
+              placeholder="e.g., Read 20 pages, Walk 10,000 steps"
+              maxlength="80"
+              autocomplete="off"
+              required
+            >
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <span aria-hidden="true">+</span> Add Habit
+          </button>
+        </form>
+      </section>
+
+      <!-- 7-Day Habit Tracking Grid -->
+      <section class="card" aria-labelledby="tracker-grid-heading">
+        <div class="grid-header-bar">
+          <h2 id="tracker-grid-heading" class="section-title">Last 7 Days</h2>
+          <span class="scroll-hint">Swipe horizontally to see all 7 days →</span>
+        </div>
+
+        <div id="gridContainer" class="table-wrapper" role="region" aria-label="7-day habit completion grid" tabindex="0">
+          <!-- Rendered dynamically by JavaScript -->
+        </div>
+      </section>
+
+      <!-- Data Management Controls (Export, Import, Delete Everything) -->
+      <section class="card" aria-labelledby="data-mgmt-heading">
+        <h2 id="data-mgmt-heading" class="section-title">Your Data &amp; Backups</h2>
+        <p class="data-note">Everything stays 100% on your device. No data is ever sent to any server.</p>
+
+        <div class="data-actions-grid">
+          <button type="button" id="exportBtn" class="btn btn-secondary">
+            <span aria-hidden="true">⬇️</span> Export my data
+          </button>
+
+          <button type="button" id="importBtn" class="btn btn-secondary">
+            <span aria-hidden="true">⬆️</span> Import a file
+          </button>
+          <!-- Hidden file input triggered by the accessible Import button -->
+          <input type="file" id="importFileInput" accept=".json,application/json" class="sr-only" aria-hidden="true" tabindex="-1">
+
+          <button type="button" id="deleteAllBtn" class="btn btn-danger-outline">
+            <span aria-hidden="true">🗑️</span> Delete everything
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==========================================================================
+       Import Confirmation Modal Dialog
+       ========================================================================== -->
+  <dialog id="importDialog" class="app-dialog" aria-labelledby="importDialogTitle">
+    <h2 id="importDialogTitle" class="dialog-title">Review File Before Importing</h2>
+    <div class="dialog-body">
+      <p>Please check the summary of the selected backup file below. Importing will <strong>replace</strong> your current habits and history.</p>
+      <div id="importPreviewBox" class="preview-summary">
+        <!-- Populated dynamically after validating the JSON file -->
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="cancelImportBtn" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="confirmImportBtn" class="btn btn-primary">Replace My Data</button>
+    </div>
+  </dialog>
+
+  <!-- ==========================================================================
+       Two-Step "Delete Everything" Confirmation Modal Dialog
+       ========================================================================== -->
+  <dialog id="deleteDialog" class="app-dialog" aria-labelledby="deleteDialogTitle">
+    <span id="deleteStepBadge" class="step-badge">Step 1 of 2</span>
+    <h2 id="deleteDialogTitle" class="dialog-title">Delete all habits and history?</h2>
+    <div id="deleteDialogBody" class="dialog-body">
+      This will permanently remove all of your habits and every recorded check-in from this browser.
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="cancelDeleteBtn" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="proceedDeleteBtn" class="btn btn-danger">Continue to Final Confirmation</button>
+    </div>
+  </dialog>
+
+  <!-- ==========================================================================
+       Single Habit Removal Confirmation Modal Dialog
+       ========================================================================== -->
+  <dialog id="removeHabitDialog" class="app-dialog" aria-labelledby="removeHabitTitle">
+    <h2 id="removeHabitTitle" class="dialog-title">Remove Habit?</h2>
+    <div id="removeHabitBody" class="dialog-body">
+      Are you sure you want to remove this habit and its streak history?
+    </div>
+    <div class="dialog-actions">
+      <button type="button" id="cancelRemoveHabitBtn" class="btn btn-secondary">Cancel</button>
+      <button type="button" id="confirmRemoveHabitBtn" class="btn btn-danger">Remove Habit</button>
+    </div>
+  </dialog>
+
+  <script>
+    /**
+     * ==========================================================================
+     * Daily Habit Tracker
+     * // v1.0 - initial build
+     *
+     * Libraries used: None (100% pure vanilla HTML, CSS, and JavaScript).
+     * Runs completely offline/client-side with zero external dependencies.
+     * ==========================================================================
+     */
+
+    /**
+     * ==========================================================================
+     * 1. EDITABLE CONFIGURATION & INITIAL DATA
+     * Edit the starting habits or storage key right here without touching the
+     * rest of the application logic.
+     * ==========================================================================
+     */
+    const APP_CONFIG = {
+      appVersion: "1.0",
+      storageKey: "daily_habit_tracker_v1",
+      daysToDisplay: 7,
+      initialHabits: [
+        { id: "habit-swim", name: "Swim" },
+        { id: "habit-water", name: "Drink more water" },
+        { id: "habit-sugar", name: "Cut back on sugar" }
+      ]
+    };
+
+    /**
+     * ==========================================================================
+     * 2. APPLICATION STATE & STORAGE AVAILABILITY
+     * Holds the active habits and completion records in memory so the app keeps
+     * working seamlessly even if localStorage is blocked by the browser.
+     * ==========================================================================
+     */
+    let isStorageAvailable = false;
+    let pendingImportData = null;
+    let deleteConfirmationStep = 0;
+    let pendingRemoveHabitId = null;
+
+    // Main state structure saved to localStorage and exported to JSON
+    let appState = {
+      version: APP_CONFIG.appVersion,
+      habits: [],
+      // Object mapping each habit ID to an array of "YYYY-MM-DD" date strings
+      completions: {}
+    };
+
+    /**
+     * ==========================================================================
+     * 3. DATE HELPER FUNCTIONS (Local Timezone Safe)
+     * Uses local calendar dates ("YYYY-MM-DD") so streaks align with the user's
+     * actual midnight boundary rather than shifting due to UTC offsets.
+     * ==========================================================================
+     */
+
+    /**
+     * Converts a JavaScript Date object into a local "YYYY-MM-DD" string.
+     */
+    function toLocalDateKey(dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    /**
+     * Returns a new Date object shifted by `offsetDays` from today at local noon
+     * (using noon avoids any Daylight Saving Time midnight edge cases).
+     */
+    function getRelativeLocalDate(offsetDays) {
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate() + offsetDays, 12, 0, 0);
+    }
+
+    /**
+     * Builds an array of the last 7 days in chronological order (6 days ago -> Today).
+     */
+    function getLastSevenDays() {
+      const days = [];
+      const todayKey = toLocalDateKey(getRelativeLocalDate(0));
+
+      for (let offset = -(APP_CONFIG.daysToDisplay - 1); offset <= 0; offset++) {
+        const dateObj = getRelativeLocalDate(offset);
+        const key = toLocalDateKey(dateObj);
+        const weekdayShort = dateObj.toLocaleDateString(undefined, { weekday: "short" });
+        const weekdayLong = dateObj.toLocaleDateString(undefined, { weekday: "long" });
+        const monthDayShort = dateObj.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        const fullReadable = dateObj.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "short",
+          day: "numeric"
+        });
+
+        days.push({
+          key,
+          isToday: key === todayKey,
+          weekdayShort,
+          weekdayLong,
+          monthDayShort,
+          fullReadable
+        });
+      }
+      return days;
+    }
+
+    /**
+     * ==========================================================================
+     * 4. STREAK CALCULATION LOGIC
+     * Counts consecutive completed days up to today.
+     * Rule: If today is NOT ticked yet, the streak stays alive until midnight
+     * (so consecutive days ending yesterday still count). If neither today nor
+     * yesterday is ticked, the streak is 0.
+     * ==========================================================================
+     */
+    function calculateStreak(habitId) {
+      const completedDates = appState.completions[habitId] || [];
+      const dateSet = new Set(completedDates);
+
+      const todayKey = toLocalDateKey(getRelativeLocalDate(0));
+      const yesterdayKey = toLocalDateKey(getRelativeLocalDate(-1));
+
+      // Determine starting point for counting backwards
+      let checkOffset;
+      if (dateSet.has(todayKey)) {
+        checkOffset = 0; // Start counting from today
+      } else if (dateSet.has(yesterdayKey)) {
+        checkOffset = -1; // Today isn't ticked yet; streak is still alive from yesterday
+      } else {
+        return 0; // Streak broken
+      }
+
+      let streak = 0;
+      while (true) {
+        const dateKey = toLocalDateKey(getRelativeLocalDate(checkOffset));
+        if (dateSet.has(dateKey)) {
+          streak++;
+          checkOffset--;
+        } else {
+          break;
+        }
+      }
+
+      return streak;
+    }
+
+    /**
+     * ==========================================================================
+     * 5. LOCALSTORAGE PERSISTENCE & GRACEFUL FALLBACK
+     * Checks if localStorage is accessible and wraps every read/write in try/catch.
+     * ==========================================================================
+     */
+    function checkLocalStorageSupport() {
+      try {
+        const testKey = "__habit_storage_test__";
+        window.localStorage.setItem(testKey, "ok");
+        window.localStorage.removeItem(testKey);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    /**
+     * Saves the current `appState` to localStorage as formatted JSON.
+     * If saving fails mid-session, shows the storage warning banner without crashing.
+     */
+    function saveState() {
+      if (!isStorageAvailable) {
+        return false;
+      }
+      try {
+        const serialized = JSON.stringify(appState);
+        window.localStorage.setItem(APP_CONFIG.storageKey, serialized);
+        return true;
+      } catch (err) {
+        isStorageAvailable = false;
+        document.getElementById("storageWarningBanner").hidden = false;
+        return false;
+      }
+    }
+
+    /**
+     * Loads saved state from localStorage or initializes with APP_CONFIG defaults
+     * if this is the user's first visit.
+     */
+    function loadInitialState() {
+      isStorageAvailable = checkLocalStorageSupport();
+
+      if (!isStorageAvailable) {
+        document.getElementById("storageWarningBanner").hidden = false;
+        resetToDefaultHabits(false);
+        return;
+      }
+
+      try {
+        const raw = window.localStorage.getItem(APP_CONFIG.storageKey);
+        if (!raw) {
+          // First-time user: load the 3 starter habits
+          resetToDefaultHabits(true);
+          return;
+        }
+
+        const parsed = JSON.parse(raw);
+        const validation = validateTrackerData(parsed);
+        if (validation.valid) {
+          appState = validation.sanitizedData;
+        } else {
+          // Fallback if stored JSON was corrupted
+          resetToDefaultHabits(true);
+        }
+      } catch (err) {
+        isStorageAvailable = false;
+        document.getElementById("storageWarningBanner").hidden = false;
+        resetToDefaultHabits(false);
+      }
+    }
+
+    /**
+     * Populates appState with a clean copy of the starter habits from APP_CONFIG.
+     */
+    function resetToDefaultHabits(shouldPersist) {
+      appState = {
+        version: APP_CONFIG.appVersion,
+        habits: APP_CONFIG.initialHabits.map(h => ({ id: h.id, name: h.name })),
+        completions: {}
+      };
+      appState.habits.forEach(h => {
+        appState.completions[h.id] = [];
+      });
+
+      if (shouldPersist) {
+        saveState();
+      }
+    }
+
+    /**
+     * ==========================================================================
+     * 6. UI FEEDBACK & SCREEN READER ANNOUNCEMENTS
+     * ==========================================================================
+     */
+    function showFeedback(message, type = "info") {
+      const banner = document.getElementById("feedbackBanner");
+      const iconEl = document.getElementById("feedbackIcon");
+      const msgEl = document.getElementById("feedbackMessage");
+
+      banner.classList.remove("banner-feedback", "banner-error", "banner-warning");
+      if (type === "error") {
+        banner.classList.add("banner-error");
+        iconEl.textContent = "⚠️";
+      } else {
+        banner.classList.add("banner-feedback");
+        iconEl.textContent = "✅";
+      }
+
+      msgEl.textContent = message;
+      banner.hidden = false;
+    }
+
+    function hideFeedback() {
+      document.getElementById("feedbackBanner").hidden = true;
+    }
+
+    function announceToScreenReader(text) {
+      const announcer = document.getElementById("srAnnouncer");
+      // Clear first so repeated identical announcements are still read aloud
+      announcer.textContent = "";
+      window.setTimeout(() => {
+        announcer.textContent = text;
+      }, 30);
+    }
+
+    /**
+     * ==========================================================================
+     * 7. RENDERING THE 7-DAY HABIT GRID
+     * Builds an accessible semantic HTML table where every day cell is a real
+     * <button type="button"> with aria-pressed, descriptive aria-label, and an
+     * explicit SVG check mark when completed.
+     * ==========================================================================
+     */
+    function renderApp() {
+      // Update header date badge
+      const todayObj = getRelativeLocalDate(0);
+      document.getElementById("todayText").textContent = todayObj.toLocaleDateString(undefined, {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      });
+
+      const container = document.getElementById("gridContainer");
+      const days = getLastSevenDays();
+
+      // Handle empty state when all habits have been removed or deleted
+      if (appState.habits.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>You don't have any habits listed right now. Add a habit above to start tracking!</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Build table structure
+      const table = document.createElement("table");
+      table.className = "habit-table";
+      table.setAttribute("aria-label", "Habits and completion buttons for the last 7 days");
+
+      // Table Header (Habit Name | 7 Day Columns | Streak | Remove)
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      const habitTh = document.createElement("th");
+      habitTh.scope = "col";
+      habitTh.className = "habit-name-col";
+      habitTh.textContent = "Habit";
+      headerRow.appendChild(habitTh);
+
+      days.forEach(day => {
+        const dayTh = document.createElement("th");
+        dayTh.scope = "col";
+        if (day.isToday) {
+          dayTh.classList.add("today-col");
+        }
+        dayTh.innerHTML = `
+          <span class="day-header-name">${day.isToday ? "Today" : day.weekdayShort}</span>
+          <span class="day-header-date">${day.monthDayShort}</span>
+        `;
+        headerRow.appendChild(dayTh);
+      });
+
+      const streakTh = document.createElement("th");
+      streakTh.scope = "col";
+      streakTh.className = "streak-col";
+      streakTh.textContent = "Streak";
+      headerRow.appendChild(streakTh);
+
+      const actionsTh = document.createElement("th");
+      actionsTh.scope = "col";
+      actionsTh.textContent = "Manage";
+      headerRow.appendChild(actionsTh);
+
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      // Table Body (One row per habit)
+      const tbody = document.createElement("tbody");
+
+      appState.habits.forEach(habit => {
+        const row = document.createElement("tr");
+        const completedSet = new Set(appState.completions[habit.id] || []);
+
+        // Habit Name Header Cell
+        const nameCell = document.createElement("th");
+        nameCell.scope = "row";
+        nameCell.className = "habit-name-col";
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "habit-name-text";
+        nameSpan.textContent = habit.name;
+        nameCell.appendChild(nameSpan);
+        row.appendChild(nameCell);
+
+        // 7 Day Toggle Button Cells
+        days.forEach(day => {
+          const td = document.createElement("td");
+          const isCompleted = completedSet.has(day.key);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "day-toggle-btn";
+          btn.setAttribute("aria-pressed", String(isCompleted));
+
+          const dayDescriptor = day.isToday ? `${day.fullReadable} (Today)` : day.fullReadable;
+          const statusDescriptor = isCompleted ? "completed" : "not completed";
+          btn.setAttribute("aria-label", `${habit.name}, ${dayDescriptor}, ${statusDescriptor}`);
+
+          // Render explicit check mark SVG when checked (never relying on color alone)
+          if (isCompleted) {
+            btn.innerHTML = `
+              <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            `;
+          } else {
+            btn.innerHTML = `<span class="unchecked-dot" aria-hidden="true"></span>`;
+          }
+
+          btn.addEventListener("click", () => {
+            toggleHabitDay(habit.id, day.key, dayDescriptor);
+          });
+
+          td.appendChild(btn);
+          row.appendChild(td);
+        });
+
+        // Streak Cell
+        const streakTd = document.createElement("td");
+        streakTd.className = "streak-col";
+        const streakCount = calculateStreak(habit.id);
+        const streakPill = document.createElement("span");
+        streakPill.className = streakCount > 0 ? "streak-pill active-streak" : "streak-pill";
+        const dayWord = streakCount === 1 ? "day" : "days";
+        streakPill.setAttribute("aria-label", `Current streak: ${streakCount} ${dayWord}`);
+        streakPill.innerHTML = `<span aria-hidden="true">${streakCount > 0 ? "🔥" : "—"}</span> ${streakCount} ${dayWord}`;
+        streakTd.appendChild(streakPill);
+        row.appendChild(streakTd);
+
+        // Remove Habit Cell
+        const removeTd = document.createElement("td");
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "remove-habit-btn";
+        removeBtn.setAttribute("aria-label", `Remove habit: ${habit.name}`);
+        removeBtn.innerHTML = `<span aria-hidden="true">✕</span> Remove`;
+        removeBtn.addEventListener("click", () => {
+          openRemoveHabitDialog(habit.id);
+        });
+        removeTd.appendChild(removeBtn);
+        row.appendChild(removeTd);
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      container.innerHTML = "";
+      container.appendChild(table);
+    }
+
+    /**
+     * ==========================================================================
+     * 8. HABIT INTERACTION HANDLERS (Toggle, Add, Remove)
+     * ==========================================================================
+     */
+
+    /**
+     * Toggles completion for a specific habit on a given "YYYY-MM-DD" date,
+     * saves state, re-renders the grid, and announces the change to screen readers.
+     */
+    function toggleHabitDay(habitId, dateKey, readableDay) {
+      const habit = appState.habits.find(h => h.id === habitId);
+      if (!habit) return;
+
+      if (!Array.isArray(appState.completions[habitId])) {
+        appState.completions[habitId] = [];
+      }
+
+      const list = appState.completions[habitId];
+      const existingIndex = list.indexOf(dateKey);
+      let nowCompleted = false;
+
+      if (existingIndex === -1) {
+        list.push(dateKey);
+        list.sort();
+        nowCompleted = true;
+      } else {
+        list.splice(existingIndex, 1);
+        nowCompleted = false;
+      }
+
+      saveState();
+      renderApp();
+
+      // Restore focus to the exact button the user clicked/pressed
+      const updatedButtons = document.querySelectorAll(".day-toggle-btn");
+      const targetPrefix = `${habit.name}, ${readableDay},`;
+      for (const btn of updatedButtons) {
+        const label = btn.getAttribute("aria-label") || "";
+        if (label.startsWith(targetPrefix)) {
+          btn.focus();
+          break;
+        }
+      }
+
+      const newStreak = calculateStreak(habitId);
+      const streakText = `${newStreak} ${newStreak === 1 ? "day" : "days"}`;
+      announceToScreenReader(
+        `${habit.name} on ${readableDay} marked as ${nowCompleted ? "completed" : "not completed"}. Current streak: ${streakText}.`
+      );
+    }
+
+    /**
+     * Adds a new habit from the input form.
+     */
+    function handleAddHabit(event) {
+      event.preventDefault();
+      const input = document.getElementById("newHabitInput");
+      const trimmedName = input.value.trim();
+
+      if (!trimmedName) {
+        showFeedback("Please enter a name for your new habit.", "error");
+        input.focus();
+        return;
+      }
+
+      // Generate a unique ID
+      const newId = `habit-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      appState.habits.push({ id: newId, name: trimmedName });
+      appState.completions[newId] = [];
+
+      saveState();
+      renderApp();
+
+      input.value = "";
+      input.focus();
+      showFeedback(`Added habit "${trimmedName}".`, "info");
+      announceToScreenReader(`Added new habit ${trimmedName}.`);
+    }
+
+    /**
+     * Opens confirmation dialog before removing a single habit.
+     */
+    function openRemoveHabitDialog(habitId) {
+      const habit = appState.habits.find(h => h.id === habitId);
+      if (!habit) return;
+
+      pendingRemoveHabitId = habitId;
+      const body = document.getElementById("removeHabitBody");
+      body.textContent = `Are you sure you want to remove "${habit.name}" and its check-in history?`;
+
+      const dialog = document.getElementById("removeHabitDialog");
+      dialog.showModal();
+    }
+
+    function confirmRemoveHabit() {
+      if (!pendingRemoveHabitId) return;
+      const habit = appState.habits.find(h => h.id === pendingRemoveHabitId);
+      const habitName = habit ? habit.name : "Habit";
+
+      appState.habits = appState.habits.filter(h => h.id !== pendingRemoveHabitId);
+      delete appState.completions[pendingRemoveHabitId];
+      pendingRemoveHabitId = null;
+
+      saveState();
+      renderApp();
+      document.getElementById("removeHabitDialog").close();
+      showFeedback(`Removed "${habitName}".`, "info");
+      announceToScreenReader(`Removed habit ${habitName}.`);
+    }
+
+    /**
+     * ==========================================================================
+     * 9. EXPORT, IMPORT & TWO-STEP DELETE EVERYTHING
+     * ==========================================================================
+     */
+
+    /**
+     * Downloads all habits and completion records as a formatted, human-readable .json file.
+     */
+    function exportDataAsJson() {
+      const exportPayload = {
+        version: APP_CONFIG.appVersion,
+        exportedAt: new Date().toISOString(),
+        habits: appState.habits,
+        completions: appState.completions
+      };
+
+      const prettyJson = JSON.stringify(exportPayload, null, 2);
+      const blob = new Blob([prettyJson], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const todayKey = toLocalDateKey(getRelativeLocalDate(0));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `habit-tracker-backup-${todayKey}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      showFeedback(`Exported backup file "habit-tracker-backup-${todayKey}.json".`, "info");
+    }
+
+    /**
+     * Carefully inspects and validates an imported JSON object before allowing
+     * it to replace user data. Returns { valid: boolean, error?: string, sanitizedData?: object, summary?: object }.
+     */
+    function validateTrackerData(data) {
+      if (!data || typeof data !== "object" || Array.isArray(data)) {
+        return { valid: false, error: "The file does not contain a valid JSON object." };
+      }
+
+      if (!Array.isArray(data.habits)) {
+        return { valid: false, error: "Missing or invalid 'habits' list in the file." };
+      }
+
+      if (!data.completions || typeof data.completions !== "object" || Array.isArray(data.completions)) {
+        return { valid: false, error: "Missing or invalid 'completions' history in the file." };
+      }
+
+      const sanitizedHabits = [];
+      const seenIds = new Set();
+
+      for (const item of data.habits) {
+        if (!item || typeof item !== "object") {
+          return { valid: false, error: "One of the habits in the file is malformed." };
+        }
+        if (typeof item.id !== "string" || !item.id.trim()) {
+          return { valid: false, error: "A habit in the file is missing a valid ID." };
+        }
+        if (typeof item.name !== "string" || !item.name.trim()) {
+          return { valid: false, error: "A habit in the file is missing a valid name." };
+        }
+        if (seenIds.has(item.id)) {
+          return { valid: false, error: `Duplicate habit ID found in file: "${item.id}".` };
+        }
+        seenIds.add(item.id);
+        sanitizedHabits.push({
+          id: item.id.trim(),
+          name: item.name.trim().slice(0, 80)
+        });
+      }
+
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      const sanitizedCompletions = {};
+      let totalCheckIns = 0;
+      let earliestDate = null;
+      let latestDate = null;
+
+      for (const habit of sanitizedHabits) {
+        const rawDates = data.completions[habit.id];
+        if (rawDates === undefined) {
+          sanitizedCompletions[habit.id] = [];
+          continue;
+        }
+        if (!Array.isArray(rawDates)) {
+          return { valid: false, error: `Completion history for "${habit.name}" must be a list of dates.` };
+        }
+
+        const uniqueValidDates = new Set();
+        for (const d of rawDates) {
+          if (typeof d !== "string" || !dateRegex.test(d)) {
+            return { valid: false, error: `Invalid date format "${String(d)}" found in "${habit.name}". Expected YYYY-MM-DD.` };
+          }
+          uniqueValidDates.add(d);
+          if (!earliestDate || d < earliestDate) earliestDate = d;
+          if (!latestDate || d > latestDate) latestDate = d;
+        }
+
+        const sortedDates = Array.from(uniqueValidDates).sort();
+        sanitizedCompletions[habit.id] = sortedDates;
+        totalCheckIns += sortedDates.length;
+      }
+
+      return {
+        valid: true,
+        sanitizedData: {
+          version: typeof data.version === "string" ? data.version : APP_CONFIG.appVersion,
+          habits: sanitizedHabits,
+          completions: sanitizedCompletions
+        },
+        summary: {
+          habitCount: sanitizedHabits.length,
+          habitNames: sanitizedHabits.map(h => h.name),
+          totalCheckIns,
+          earliestDate,
+          latestDate
+        }
+      };
+    }
+
+    /**
+     * Reads the selected file, validates it, and opens the preview confirmation modal.
+     */
+    function handleImportFileSelected(event) {
+      const file = event.target.files && event.target.files[0];
+      // Reset file input value so the same file can be selected again later if needed
+      event.target.value = "";
+
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (loadEvent) {
+        try {
+          const parsedJson = JSON.parse(loadEvent.target.result);
+          const result = validateTrackerData(parsedJson);
+
+          if (!result.valid) {
+            showFeedback(`Could not import file: ${result.error}`, "error");
+            return;
+          }
+
+          pendingImportData = result.sanitizedData;
+          renderImportPreviewDialog(file.name, result.summary);
+        } catch (err) {
+          showFeedback("Could not import file: The selected file is not valid JSON.", "error");
+        }
+      };
+
+      reader.onerror = function () {
+        showFeedback("Could not read the selected file. Please try again.", "error");
+      };
+
+      reader.readAsText(file);
+    }
+
+    /**
+     * Populates and displays the Import Preview Dialog so the user can inspect
+     * what is inside the file before replacing current data.
+     */
+    function renderImportPreviewDialog(fileName, summary) {
+      const previewBox = document.getElementById("importPreviewBox");
+      const dateRangeText = summary.earliestDate && summary.latestDate
+        ? `${summary.earliestDate} to ${summary.latestDate}`
+        : "No check-ins recorded yet";
+
+      const habitListHtml = summary.habitNames.length > 0
+        ? `<ul>${summary.habitNames.map(name => `<li>${escapeHtml(name)}</li>`).join("")}</ul>`
+        : `<p><em>(0 habits in this file)</em></p>`;
+
+      previewBox.innerHTML = `
+        <div><strong>File:</strong> ${escapeHtml(fileName)}</div>
+        <div><strong>Habits found (${summary.habitCount}):</strong></div>
+        ${habitListHtml}
+        <div style="margin-top: 0.5rem;"><strong>Total check-ins:</strong> ${summary.totalCheckIns}</div>
+        <div><strong>Date range:</strong> ${escapeHtml(dateRangeText)}</div>
+      `;
+
+      document.getElementById("importDialog").showModal();
+    }
+
+    /**
+     * Replaces current data with the validated imported file after user confirmation.
+     */
+    function confirmImportData() {
+      if (!pendingImportData) return;
+
+      appState = pendingImportData;
+      pendingImportData = null;
+      saveState();
+      renderApp();
+
+      document.getElementById("importDialog").close();
+      showFeedback(`Imported ${appState.habits.length} habit(s) successfully.`, "info");
+      announceToScreenReader("Backup file imported and data replaced.");
+    }
+
+    /**
+     * Starts the two-step "Delete everything" confirmation flow.
+     */
+    function openDeleteEverythingDialog() {
+      deleteConfirmationStep = 1;
+      updateDeleteDialogUI();
+      document.getElementById("deleteDialog").showModal();
+    }
+
+    function updateDeleteDialogUI() {
+      const badge = document.getElementById("deleteStepBadge");
+      const title = document.getElementById("deleteDialogTitle");
+      const body = document.getElementById("deleteDialogBody");
+      const proceedBtn = document.getElementById("proceedDeleteBtn");
+
+      if (deleteConfirmationStep === 1) {
+        badge.textContent = "Step 1 of 2";
+        title.textContent = "Delete all habits and history?";
+        body.textContent = "This will erase all your habits and check-in streaks from this browser. Are you sure you want to proceed?";
+        proceedBtn.textContent = "Yes, Continue (Step 1 of 2)";
+      } else {
+        badge.textContent = "Step 2 of 2 — Final Warning";
+        title.textContent = "Are you absolutely sure?";
+        body.textContent = "This action cannot be undone unless you exported a JSON backup file. Click below to permanently delete everything.";
+        proceedBtn.textContent = "Permanently Delete Everything";
+      }
+    }
+
+    function handleProceedDeleteStep() {
+      if (deleteConfirmationStep === 1) {
+        deleteConfirmationStep = 2;
+        updateDeleteDialogUI();
+        // Move focus to Cancel button on Step 2 as a safe accessible default
+        document.getElementById("cancelDeleteBtn").focus();
+      } else if (deleteConfirmationStep === 2) {
+        appState = {
+          version: APP_CONFIG.appVersion,
+          habits: [],
+          completions: {}
+        };
+        saveState();
+        renderApp();
+        deleteConfirmationStep = 0;
+        document.getElementById("deleteDialog").close();
+        showFeedback("All habits and history have been deleted.", "info");
+        announceToScreenReader("All habits and history have been permanently deleted.");
+      }
+    }
+
+    /**
+     * Escapes plain text before inserting into innerHTML templates.
+     */
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    /**
+     * ==========================================================================
+     * 10. EVENT LISTENERS & INITIALIZATION
+     * ==========================================================================
+     */
+    function initApp() {
+      loadInitialState();
+      renderApp();
+
+      // Add Habit Form
+      document.getElementById("addHabitForm").addEventListener("submit", handleAddHabit);
+
+      // Dismiss Feedback Banner
+      document.getElementById("dismissFeedbackBtn").addEventListener("click", hideFeedback);
+
+      // Export Button
+      document.getElementById("exportBtn").addEventListener("click", exportDataAsJson);
+
+      // Import Button & File Input
+      const importFileInput = document.getElementById("importFileInput");
+      document.getElementById("importBtn").addEventListener("click", () => {
+        importFileInput.click();
+      });
+      importFileInput.addEventListener("change", handleImportFileSelected);
+
+      // Import Dialog Actions
+      document.getElementById("cancelImportBtn").addEventListener("click", () => {
+        pendingImportData = null;
+        document.getElementById("importDialog").close();
+      });
+      document.getElementById("confirmImportBtn").addEventListener("click", confirmImportData);
+
+      // Two-Step Delete Everything Dialog Actions
+      document.getElementById("deleteAllBtn").addEventListener("click", openDeleteEverythingDialog);
+      document.getElementById("cancelDeleteBtn").addEventListener("click", () => {
+        deleteConfirmationStep = 0;
+        document.getElementById("deleteDialog").close();
+      });
+      document.getElementById("proceedDeleteBtn").addEventListener("click", handleProceedDeleteStep);
+
+      // Single Habit Remove Dialog Actions
+      document.getElementById("cancelRemoveHabitBtn").addEventListener("click", () => {
+        pendingRemoveHabitId = null;
+        document.getElementById("removeHabitDialog").close();
+      });
+      document.getElementById("confirmRemoveHabitBtn").addEventListener("click", confirmRemoveHabit);
+    }
+
+    // Boot the application once the DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initApp);
+    } else {
+      initApp();
+    }
+  </script>
+</body>
+</html>
